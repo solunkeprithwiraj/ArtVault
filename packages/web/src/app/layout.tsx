@@ -6,6 +6,9 @@ import { Header } from '@/components/header';
 export const metadata: Metadata = {
   title: 'ArtVault',
   description: 'Your personal art gallery',
+  manifest: '/manifest.json',
+  themeColor: '#ec4899',
+  icons: { icon: '/icon-192.svg', apple: '/icon-192.svg' },
 };
 
 export default function RootLayout({

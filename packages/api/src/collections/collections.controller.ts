@@ -19,6 +19,11 @@ export class CollectionsController {
     return this.service.findAll();
   }
 
+  @Get('tree')
+  tree() {
+    return this.service.tree();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);

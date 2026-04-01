@@ -56,7 +56,7 @@ export class ArtPiecesService {
   findOne(id: string) {
     return this.prisma.artPiece.findUniqueOrThrow({
       where: { id },
-      include: { collection: true },
+      include: { collection: true, notes: { orderBy: { createdAt: 'desc' } } },
     });
   }
 

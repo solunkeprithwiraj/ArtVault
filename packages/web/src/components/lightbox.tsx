@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { MediaRenderer } from './media-renderer';
+import { Notes } from './notes';
 
 interface LightboxProps {
   piece: {
@@ -123,6 +124,9 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
                 </span>
               ))}
             </div>
+
+            {/* Notes */}
+            {piece.id && <Notes artPieceId={piece.id} />}
 
             {/* Mobile prev/next */}
             {(onPrev || onNext) && (

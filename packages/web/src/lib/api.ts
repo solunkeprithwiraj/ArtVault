@@ -73,6 +73,7 @@ export const api = {
   },
   collections: {
     list: () => request<any[]>('/collections'),
+    tree: () => request<any[]>('/collections/tree'),
     get: (id: string) => request<any>(`/collections/${id}`),
     create: (data: any) =>
       request<any>('/collections', { method: 'POST', body: JSON.stringify(data) }),
@@ -81,4 +82,20 @@ export const api = {
     delete: (id: string) =>
       request<void>(`/collections/${id}`, { method: 'DELETE' }),
   },
+  notes: {
+    list: (artPieceId: string) => request<any[]>(`/art-pieces/${artPieceId}/notes`),
+    create: (artPieceId: string, content: string) =>
+      request<any>(`/art-pieces/${artPieceId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      }),
+    update: (artPieceId: string, noteId: string, content: string) =>
+      request<any>(`/art-pieces/${artPieceId}/notes/${noteId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      }),
+    delete: (artPieceId: string, noteId: string) =>
+      request<void>(`/art-pieces/${artPieceId}/notes/${noteId}`, { method: 'DELETE' }),
+  },
+  proxyUrl: (url: string) => `${API_BASE}/proxy?url=${encodeURIComponent(url)}`,
 };

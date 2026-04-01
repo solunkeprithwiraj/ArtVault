@@ -11,6 +11,10 @@ export class CreateCollectionDto {
   @IsOptional()
   @IsUrl()
   coverUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  parentId?: string;
 }
 
 export class UpdateCollectionDto {
@@ -25,4 +29,8 @@ export class UpdateCollectionDto {
   @IsOptional()
   @IsUrl()
   coverUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  parentId?: string;
 }

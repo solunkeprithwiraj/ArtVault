@@ -25,6 +25,7 @@ model ArtPiece {
   isFavorite   Boolean     @default(false)
   collection   Collection? @relation(fields: [collectionId], references: [id])
   collectionId String?
+  notes        Note[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -32,13 +33,27 @@ model ArtPiece {
 }
 
 model Collection {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
   coverUrl    String?
+  parentId    String?
+  parent      Collection?  @relation("CollectionTree", fields: [parentId], references: [id])
+  children    Collection[] @relation("CollectionTree")
   artPieces   ArtPiece[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("collections")
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  content    String
+  artPiece   ArtPiece @relation(fields: [artPieceId], references: [id], onDelete: Cascade)
+  artPieceId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("notes")
 }

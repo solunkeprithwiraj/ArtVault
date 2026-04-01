@@ -9,14 +9,44 @@ export class CollectionsService {
   findAll() {
     return this.prisma.collection.findMany({
       orderBy: { name: 'asc' },
-      include: { _count: { select: { artPieces: true } } },
+      include: {
+        _count: { select: { artPieces: true, children: true } },
+        parent: { select: { id: true, name: true } },
+      },
     });
   }
 
   findOne(id: string) {
     return this.prisma.collection.findUniqueOrThrow({
       where: { id },
-      include: { artPieces: true },
+      include: {
+        artPieces: true,
+        children: {
+          include: { _count: { select: { artPieces: true } } },
+          orderBy: { name: 'asc' },
+        },
+        parent: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  tree() {
+    return this.prisma.collection.findMany({
+      where: { parentId: null },
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { artPieces: true } },
+        children: {
+          orderBy: { name: 'asc' },
+          include: {
+            _count: { select: { artPieces: true } },
+            children: {
+              orderBy: { name: 'asc' },
+              include: { _count: { select: { artPieces: true } } },
+            },
+          },
+        },
+      },
     });
   }
 
