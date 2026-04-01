@@ -5,4 +5,4 @@ dist/
 .env.local
 *.log
 .turbo/
-src/generated/
+**/src/generated/

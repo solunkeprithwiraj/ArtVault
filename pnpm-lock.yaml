@@ -40,6 +40,9 @@ importers:
       class-validator:
         specifier: ^0.14.0
         version: 0.14.4
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
       pg:
         specifier: ^8.13.0
         version: 8.20.0
@@ -53,6 +56,9 @@ importers:
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.17(@types/node@22.19.15)
+      '@prisma/config':
+        specifier: ^7.0.0
+        version: 7.6.0
       '@types/bcrypt':
         specifier: ^5.0.0
         version: 5.0.2
