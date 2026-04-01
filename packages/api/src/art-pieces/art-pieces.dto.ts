@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum, IsArray, IsUrl } from 'class-validator';
-import { MediaType } from '@prisma/client';
+import { MediaType } from '../generated/prisma/client';
 
 export class CreateArtPieceDto {
   @IsString()

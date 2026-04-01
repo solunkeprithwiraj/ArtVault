@@ -9,7 +9,7 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { MediaType } from '@prisma/client';
+import { MediaType } from '../generated/prisma/client';
 import { ArtPiecesService } from './art-pieces.service';
 import { CreateArtPieceDto, UpdateArtPieceDto } from './art-pieces.dto';
 

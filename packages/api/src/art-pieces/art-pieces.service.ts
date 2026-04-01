@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, MediaType } from '@prisma/client';
+import { Prisma, MediaType } from '../generated/prisma/client';
 import { CreateArtPieceDto, UpdateArtPieceDto } from './art-pieces.dto';
 
 interface FindAllOptions {
