@@ -8,13 +8,13 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-themed bg-themed-card" style={{ backdropFilter: 'blur(12px)' }}>
+      <header className="sticky top-0 z-40 border-b border-themed bg-themed-card" style={{ backdropFilter: 'blur(12px)' }} role="banner">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <a href="/" className="text-2xl font-bold tracking-tight text-themed">
             Art<span className="accent-text">Vault</span>
           </a>
           <div className="flex items-center gap-4">
-            <nav className="hidden items-center gap-6 text-sm font-medium text-themed-secondary sm:flex">
+            <nav className="hidden items-center gap-6 text-sm font-medium text-themed-secondary sm:flex" aria-label="Main navigation">
               <a href="/" className="transition-colors hover:text-themed">Gallery</a>
               <a href="/collections" className="transition-colors hover:text-themed">Collections</a>
               <a href="/add" className="transition-colors hover:text-themed">+ Add</a>
@@ -61,7 +61,7 @@ export function Header() {
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="mobile-nav sm:hidden">
+      <nav className="mobile-nav sm:hidden" aria-label="Mobile navigation">
         <a href="/" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />

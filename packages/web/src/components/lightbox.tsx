@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { MediaRenderer } from './media-renderer';
 import { ZoomableImage } from './zoomable-image';
 import { Notes } from './notes';
+import { useTouch } from '@/lib/use-touch';
+import { ShareButton } from './share-button';
 
 interface LightboxProps {
   piece: {
@@ -43,16 +45,28 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
     };
   }, [piece, handleKeyDown]);
 
+  const touchHandlers = useTouch(
+    useMemo(
+      () => ({
+        onSwipeLeft: () => hasNext && onNext?.(),
+        onSwipeRight: () => hasPrev && onPrev?.(),
+        onSwipeDown: () => onClose(),
+      }),
+      [hasNext, hasPrev, onNext, onPrev, onClose],
+    ),
+  );
+
   if (!piece) return null;
 
   const navButtonClass =
     'absolute top-1/2 -translate-y-1/2 z-10 rounded-full bg-themed-card p-3 text-themed shadow-lg transition-all hover:accent-text hover:scale-110 disabled:opacity-30 disabled:hover:scale-100';
 
   return (
-    <div className="lightbox-overlay animate-lightbox-bg" onClick={onClose}>
+    <div className="lightbox-overlay animate-lightbox-bg" onClick={onClose} role="dialog" aria-modal="true" aria-label={`Viewing: ${piece.title}`}>
       <div
         className="animate-lightbox-content relative max-h-[90vh] max-w-[95vw] sm:max-w-[90vw]"
         onClick={(e) => e.stopPropagation()}
+        {...touchHandlers}
       >
         {/* Close button */}
         <button
@@ -109,6 +123,11 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
                     </svg>
                   </button>
                 )}
+                <ShareButton
+                  title={piece.title}
+                  text={piece.description}
+                  url={piece.sourceUrl}
+                />
                 {piece.id && (
                   <a
                     href={`/edit/${piece.id}`}

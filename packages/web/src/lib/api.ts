@@ -107,5 +107,12 @@ export const api = {
     delete: (artPieceId: string, noteId: string) =>
       request<void>(`/art-pieces/${artPieceId}/notes/${noteId}`, { method: 'DELETE' }),
   },
-  proxyUrl: (url: string) => `${API_BASE}/proxy?url=${encodeURIComponent(url)}`,
+  proxyUrl: (url: string, opts?: { w?: number; h?: number; q?: number; format?: string }) => {
+    const params = new URLSearchParams({ url });
+    if (opts?.w) params.set('w', String(opts.w));
+    if (opts?.h) params.set('h', String(opts.h));
+    if (opts?.q) params.set('q', String(opts.q));
+    if (opts?.format) params.set('format', opts.format);
+    return `${API_BASE}/proxy?${params.toString()}`;
+  },
 };

@@ -8,6 +8,7 @@ interface MediaRendererProps {
   sourceUrl: string;
   title: string;
   className?: string;
+  thumbnail?: boolean; // Use optimized smaller image for card views
   onColorExtract?: (color: string) => void;
 }
 
@@ -45,17 +46,25 @@ function ProxiedImage({
   sourceUrl,
   title,
   className,
+  thumbnail,
   onColorExtract,
 }: Omit<MediaRendererProps, 'mediaType'>) {
   const [src, setSrc] = useState(sourceUrl);
   const [failed, setFailed] = useState(false);
+  const [triedOptimized, setTriedOptimized] = useState(false);
 
   const handleError = () => {
     if (!failed) {
       setFailed(true);
-      setSrc(api.proxyUrl(sourceUrl));
+      // On error, try proxy (with optimization if thumbnail mode)
+      setSrc(api.proxyUrl(sourceUrl, thumbnail ? { w: 600, q: 75, format: 'webp' } : undefined));
     }
   };
+
+  // For thumbnail mode, use srcSet with optimized proxy versions
+  const srcSet = thumbnail && !failed
+    ? `${sourceUrl} 1x, ${sourceUrl} 2x`
+    : undefined;
 
   const handleLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -136,7 +145,7 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
   );
 }
 
-export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onColorExtract }: MediaRendererProps) {
+export function MediaRenderer({ mediaType, sourceUrl, title, className = '', thumbnail, onColorExtract }: MediaRendererProps) {
   switch (mediaType) {
     case 'IMAGE':
       return (
@@ -144,6 +153,7 @@ export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onC
           sourceUrl={sourceUrl}
           title={title}
           className={className}
+          thumbnail={thumbnail}
           onColorExtract={onColorExtract}
         />
       );

@@ -99,6 +99,7 @@ export function ArtCard({
           sourceUrl={piece.sourceUrl}
           title={piece.title}
           className={isListView ? 'h-full object-cover' : ''}
+          thumbnail
           onColorExtract={piece.mediaType === 'IMAGE' ? setDominantColor : undefined}
         />
       </div>

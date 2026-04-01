@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Res, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
+import sharp from 'sharp';
 
 const ALLOWED_CONTENT_TYPES = [
   'image/jpeg',
@@ -11,13 +12,22 @@ const ALLOWED_CONTENT_TYPES = [
   'image/bmp',
 ];
 
+const RESIZABLE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/bmp'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 @Controller('proxy')
 export class ProxyController {
   @Get()
-  async proxy(@Query('url') url: string, @Res() res: Response) {
+  async proxy(
+    @Query('url') url: string,
+    @Query('w') width?: string,
+    @Query('h') height?: string,
+    @Query('q') quality?: string,
+    @Query('format') format?: string,
+    @Res() res?: Response,
+  ) {
     if (!url) throw new BadRequestException('url query parameter is required');
+    if (!res) return;
 
     try {
       new URL(url);
@@ -45,13 +55,51 @@ export class ProxyController {
         return res.status(413).send('Image too large');
       }
 
-      res.setHeader('Content-Type', contentType);
+      let buffer = Buffer.from(await upstream.arrayBuffer());
+
+      const w = width ? parseInt(width) : undefined;
+      const h = height ? parseInt(height) : undefined;
+      const q = quality ? Math.min(100, Math.max(1, parseInt(quality))) : 80;
+      const needsResize = (w || h || quality || format) && RESIZABLE_TYPES.some((t) => contentType.startsWith(t));
+
+      if (needsResize) {
+        let pipeline = sharp(buffer);
+
+        if (w || h) {
+          pipeline = pipeline.resize(w || undefined, h || undefined, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          });
+        }
+
+        const outputFormat = format === 'webp' ? 'webp' : format === 'avif' ? 'avif' : format === 'png' ? 'png' : 'jpeg';
+
+        switch (outputFormat) {
+          case 'webp':
+            pipeline = pipeline.webp({ quality: q });
+            break;
+          case 'avif':
+            pipeline = pipeline.avif({ quality: q });
+            break;
+          case 'png':
+            pipeline = pipeline.png({ quality: q });
+            break;
+          default:
+            pipeline = pipeline.jpeg({ quality: q });
+        }
+
+        buffer = Buffer.from(await pipeline.toBuffer());
+
+        const mimeMap = { webp: 'image/webp', avif: 'image/avif', png: 'image/png', jpeg: 'image/jpeg' };
+        res.setHeader('Content-Type', mimeMap[outputFormat]);
+      } else {
+        res.setHeader('Content-Type', contentType);
+      }
+
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
       res.setHeader('Access-Control-Allow-Origin', '*');
-
-      const buffer = Buffer.from(await upstream.arrayBuffer());
       res.send(buffer);
-    } catch (err: any) {
+    } catch {
       return res.status(502).send('Failed to fetch image');
     }
   }
