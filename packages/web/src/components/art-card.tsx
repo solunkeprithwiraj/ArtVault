@@ -10,57 +10,175 @@ interface ArtCardProps {
     mediaType: 'IMAGE' | 'VIDEO' | 'IFRAME';
     sourceUrl: string;
     tags: string[];
+    isFavorite?: boolean;
     collection?: { name: string } | null;
   };
+  layout?: 'masonry' | 'grid' | 'list';
+  index?: number;
   onOpen?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent, id: string) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, id: string) => void;
 }
 
-export function ArtCard({ piece, onOpen, onDelete }: ArtCardProps) {
+export function ArtCard({
+  piece,
+  layout = 'masonry',
+  index = 0,
+  onOpen,
+  onDelete,
+  onToggleFavorite,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: ArtCardProps) {
+  const isListView = layout === 'list';
+
   return (
-    <div className="masonry-item group relative overflow-hidden rounded-xl bg-neutral-900 border border-white/5 transition-all hover:border-pink-500/30 hover:shadow-lg hover:shadow-pink-500/5">
-      <div className="cursor-pointer" onClick={() => onOpen?.(piece.id)}>
+    <div
+      className={`animate-card-enter group relative overflow-hidden rounded-xl bg-themed-card border border-themed transition-all hover:border-[var(--border-hover)] hover:shadow-lg ${
+        isListView ? 'flex gap-4' : 'masonry-item'
+      }`}
+      style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
+      draggable={draggable}
+      onDragStart={(e) => onDragStart?.(e, piece.id)}
+      onDragOver={(e) => { e.preventDefault(); onDragOver?.(e); }}
+      onDragLeave={(e) => onDragLeave?.(e)}
+      onDrop={(e) => onDrop?.(e, piece.id)}
+    >
+      {/* Media */}
+      <div
+        className={`cursor-pointer ${isListView ? 'h-24 w-36 shrink-0 sm:h-28 sm:w-44' : ''}`}
+        onClick={() => onOpen?.(piece.id)}
+      >
         <MediaRenderer
           mediaType={piece.mediaType}
           sourceUrl={piece.sourceUrl}
           title={piece.title}
+          className={isListView ? 'h-full object-cover' : ''}
         />
       </div>
 
-      <div className="p-4">
-        <h3 className="font-semibold text-white truncate">{piece.title}</h3>
-        {piece.description && (
-          <p className="mt-1 text-sm text-neutral-400 line-clamp-2">{piece.description}</p>
-        )}
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {piece.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-neutral-300"
-            >
-              {tag}
-            </span>
-          ))}
+      {/* Content */}
+      <div className={`flex-1 ${isListView ? 'flex items-center justify-between gap-4 py-3 pr-4' : 'p-4'}`}>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-themed truncate">{piece.title}</h3>
+          {piece.description && (
+            <p className={`mt-1 text-sm text-themed-secondary ${isListView ? 'truncate' : 'line-clamp-2'}`}>
+              {piece.description}
+            </p>
+          )}
+          {!isListView && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {piece.tags.map((tag) => (
+                <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {piece.collection && (
+            <p className={`text-xs accent-text ${isListView ? 'mt-0.5' : 'mt-2'}`}>
+              {piece.collection.name}
+            </p>
+          )}
         </div>
 
-        {piece.collection && (
-          <p className="mt-2 text-xs text-pink-400">{piece.collection.name}</p>
+        {/* List view tags */}
+        {isListView && piece.tags.length > 0 && (
+          <div className="hidden shrink-0 gap-1.5 lg:flex">
+            {piece.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">
+                {tag}
+              </span>
+            ))}
+            {piece.tags.length > 3 && (
+              <span className="text-xs text-themed-muted">+{piece.tags.length - 3}</span>
+            )}
+          </div>
+        )}
+
+        {/* List view inline actions */}
+        {isListView && (
+          <div className="flex shrink-0 items-center gap-2">
+            {onToggleFavorite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }}
+                className="p-1 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                  fill={piece.isFavorite ? 'var(--accent)' : 'none'}
+                  stroke={piece.isFavorite ? 'var(--accent)' : 'currentColor'}
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  className="text-themed-muted"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
+            )}
+            <a href={`/edit/${piece.id}`} className="p-1 text-themed-muted hover:text-themed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </a>
+          </div>
         )}
       </div>
 
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(piece.id);
-          }}
-          className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-neutral-400 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18M6 6l12 12" />
+      {/* Overlay action buttons (masonry/grid only) */}
+      {!isListView && (
+        <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }}
+              className="rounded-full bg-black/60 p-1.5 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill={piece.isFavorite ? '#ec4899' : 'none'}
+                stroke={piece.isFavorite ? '#ec4899' : '#a3a3a3'}
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </button>
+          )}
+          <a
+            href={`/edit/${piece.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </a>
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(piece.id); }}
+              className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-red-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Drag handle */}
+      {draggable && !isListView && (
+        <div className="absolute left-2 top-2 cursor-grab rounded-full bg-black/60 p-1.5 text-neutral-400 opacity-0 transition-opacity group-hover:opacity-100">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="5" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="19" r="1" />
           </svg>
-        </button>
+        </div>
       )}
     </div>
   );

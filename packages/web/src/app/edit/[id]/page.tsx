@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { detectMedia } from '@/lib/url-detect';
 import { useToast } from '@/components/toast';
 import { MediaRenderer } from '@/components/media-renderer';
 
-export default function AddPage() {
+export default function EditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const [collections, setCollections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -20,45 +22,46 @@ export default function AddPage() {
     tags: '',
     collectionId: '',
   });
-  const [submitting, setSubmitting] = useState(false);
-
-  const [autoDetected, setAutoDetected] = useState(false);
 
   useEffect(() => {
-    api.collections.list().then(setCollections).catch(() => {});
-  }, []);
-
-  const handleUrlChange = (url: string) => {
-    const newForm = { ...form, sourceUrl: url };
-    const detected = detectMedia(url);
-    if (detected) {
-      newForm.mediaType = detected.mediaType;
-      newForm.sourceUrl = detected.sourceUrl;
-      if (detected.title && !form.title) newForm.title = detected.title;
-      setAutoDetected(true);
-    } else {
-      setAutoDetected(false);
-    }
-    setForm(newForm);
-  };
+    Promise.all([api.artPieces.get(id), api.collections.list()])
+      .then(([piece, cols]) => {
+        setForm({
+          title: piece.title,
+          description: piece.description || '',
+          mediaType: piece.mediaType,
+          sourceUrl: piece.sourceUrl,
+          thumbnailUrl: piece.thumbnailUrl || '',
+          tags: piece.tags.join(', '),
+          collectionId: piece.collectionId || '',
+        });
+        setCollections(cols);
+        setLoading(false);
+      })
+      .catch((err) => {
+        toast(err.message || 'Failed to load art piece', 'error');
+        router.push('/');
+      });
+  }, [id, router, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.artPieces.create({
+      await api.artPieces.update(id, {
         ...form,
         tags: form.tags
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
-        collectionId: form.collectionId || undefined,
-        thumbnailUrl: form.thumbnailUrl || undefined,
+        collectionId: form.collectionId || null,
+        thumbnailUrl: form.thumbnailUrl || null,
+        description: form.description || null,
       });
-      toast('Art piece added', 'success');
+      toast('Art piece updated', 'success');
       router.push('/');
     } catch (err: any) {
-      toast(err.message || 'Failed to add art piece', 'error');
+      toast(err.message || 'Failed to update', 'error');
       setSubmitting(false);
     }
   };
@@ -66,11 +69,19 @@ export default function AddPage() {
   const inputClass =
     'w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]';
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="mb-8 flex items-center gap-4">
         <a href="/" className="text-themed-secondary hover:text-themed">&larr;</a>
-        <h1 className="text-3xl font-bold text-themed">Add Art Piece</h1>
+        <h1 className="text-3xl font-bold text-themed">Edit Art Piece</h1>
       </div>
 
       <div className="mx-auto grid max-w-4xl gap-8 lg:grid-cols-[1fr,320px]">
@@ -83,7 +94,6 @@ export default function AddPage() {
               className={inputClass}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="The Starry Night"
             />
           </div>
 
@@ -94,7 +104,6 @@ export default function AddPage() {
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional description..."
             />
           </div>
 
@@ -125,14 +134,8 @@ export default function AddPage() {
               required
               className={inputClass}
               value={form.sourceUrl}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder="Paste any URL — YouTube, Vimeo, image, video..."
+              onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
             />
-            {autoDetected && (
-              <p className="mt-1.5 text-xs accent-text">
-                Auto-detected as {form.mediaType === 'IFRAME' ? 'Embed' : form.mediaType.charAt(0) + form.mediaType.slice(1).toLowerCase()}
-              </p>
-            )}
           </div>
 
           <div>
@@ -144,7 +147,6 @@ export default function AddPage() {
               className={inputClass}
               value={form.thumbnailUrl}
               onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
-              placeholder="https://..."
             />
           </div>
 
@@ -157,7 +159,6 @@ export default function AddPage() {
               className={inputClass}
               value={form.tags}
               onChange={(e) => setForm({ ...form, tags: e.target.value })}
-              placeholder="painting, abstract, modern"
             />
           </div>
 
@@ -177,29 +178,33 @@ export default function AddPage() {
             </select>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg accent-bg py-3 font-semibold text-white accent-bg-hover disabled:opacity-50"
-          >
-            {submitting ? 'Adding...' : 'Add to Vault'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 rounded-lg accent-bg py-3 font-semibold text-white accent-bg-hover disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </button>
+            <a
+              href="/"
+              className="rounded-lg border border-themed bg-themed-input px-6 py-3 font-medium text-themed-secondary hover:text-themed"
+            >
+              Cancel
+            </a>
+          </div>
         </form>
 
         {/* Live preview */}
         <div className="hidden lg:block">
           <p className="mb-3 text-sm font-medium text-themed-secondary">Preview</p>
           <div className="overflow-hidden rounded-xl border border-themed bg-themed-card">
-            {form.sourceUrl ? (
+            {form.sourceUrl && (
               <MediaRenderer
                 mediaType={form.mediaType}
                 sourceUrl={form.sourceUrl}
                 title={form.title || 'Preview'}
               />
-            ) : (
-              <div className="flex aspect-video items-center justify-center bg-themed-input">
-                <p className="text-sm text-themed-muted">Enter a URL to preview</p>
-              </div>
             )}
             <div className="p-4">
               <h3 className="font-semibold text-themed">{form.title || 'Untitled'}</h3>
