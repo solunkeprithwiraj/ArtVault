@@ -70,6 +70,11 @@ export const api = {
     reorder: (ids: string[]) =>
       request<any>('/art-pieces/reorder', { method: 'POST', body: JSON.stringify({ ids }) }),
     stats: () => request<any>('/art-pieces/stats'),
+    random: () => request<any>('/art-pieces/random'),
+    dailyHighlight: () => request<any>('/art-pieces/daily-highlight'),
+    discover: (limit?: number) => request<any[]>(`/art-pieces/discover${limit ? `?limit=${limit}` : ''}`),
+    related: (id: string) => request<any[]>(`/art-pieces/${id}/related`),
+    togglePin: (id: string) => request<any>(`/art-pieces/${id}/pin`, { method: 'PATCH' }),
     checkDuplicate: (url: string) =>
       request<any>(`/art-pieces/check-duplicate?url=${encodeURIComponent(url)}`),
     checkLinks: () => request<any>('/art-pieces/check-links'),

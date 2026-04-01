@@ -62,6 +62,21 @@ export class ArtPiecesController {
     return this.service.checkLinks();
   }
 
+  @Get('random')
+  random() {
+    return this.service.random();
+  }
+
+  @Get('daily-highlight')
+  dailyHighlight() {
+    return this.service.dailyHighlight();
+  }
+
+  @Get('discover')
+  discover(@Query('limit') limit?: string) {
+    return this.service.discover(limit ? +limit : undefined);
+  }
+
   @Get('timeline')
   timeline() {
     return this.service.timeline();
@@ -95,6 +110,16 @@ export class ArtPiecesController {
   @Post('batch/tag')
   batchTag(@Body() body: { ids: string[]; tags: string[]; mode: 'add' | 'set' }) {
     return this.service.batchTag(body.ids, body.tags, body.mode);
+  }
+
+  @Get(':id/related')
+  related(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.service.related(id, limit ? +limit : undefined);
+  }
+
+  @Patch(':id/pin')
+  togglePin(@Param('id') id: string) {
+    return this.service.togglePin(id);
   }
 
   @Patch(':id/favorite')

@@ -67,7 +67,7 @@ export class ArtPiecesService {
       oldest: [{ createdAt: 'asc' }],
       title: [{ title: 'asc' }],
       title_desc: [{ title: 'desc' }],
-      custom: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      custom: [{ isPinned: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
     };
 
     return Promise.all([
@@ -253,5 +253,82 @@ export class ArtPiecesService {
       byCollection,
       recent,
     };
+  }
+
+  // Random piece
+  async random() {
+    const count = await this.prisma.artPiece.count();
+    if (count === 0) return null;
+    const skip = Math.floor(Math.random() * count);
+    const pieces = await this.prisma.artPiece.findMany({
+      skip,
+      take: 1,
+      include: { collection: true },
+    });
+    return pieces[0] || null;
+  }
+
+  // Related pieces by overlapping tags
+  async related(id: string, limit = 6) {
+    const piece = await this.prisma.artPiece.findUnique({
+      where: { id },
+      select: { tags: true },
+    });
+    if (!piece || piece.tags.length === 0) return [];
+
+    return this.prisma.artPiece.findMany({
+      where: {
+        id: { not: id },
+        tags: { hasSome: piece.tags },
+      },
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: { collection: true },
+    });
+  }
+
+  // Daily highlight — deterministic "random" per day
+  async dailyHighlight() {
+    const count = await this.prisma.artPiece.count();
+    if (count === 0) return null;
+    const today = new Date().toISOString().split('T')[0];
+    // Simple hash of date string to pick an index
+    let hash = 0;
+    for (let i = 0; i < today.length; i++) {
+      hash = (hash * 31 + today.charCodeAt(i)) % count;
+    }
+    const pieces = await this.prisma.artPiece.findMany({
+      skip: Math.abs(hash),
+      take: 1,
+      include: { collection: true },
+    });
+    return pieces[0] || null;
+  }
+
+  // Discover — shuffled list
+  async discover(limit = 20) {
+    const all = await this.prisma.artPiece.findMany({
+      select: { id: true },
+    });
+    // Fisher-Yates shuffle
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    const ids = all.slice(0, limit).map((a) => a.id);
+    const pieces = await this.prisma.artPiece.findMany({
+      where: { id: { in: ids } },
+      include: { collection: true },
+    });
+    // Preserve shuffle order
+    return ids.map((id) => pieces.find((p) => p.id === id)).filter(Boolean);
+  }
+
+  // Pin/unpin
+  togglePin(id: string) {
+    return this.prisma.$queryRaw`
+      UPDATE art_pieces SET "isPinned" = NOT "isPinned", "updatedAt" = NOW() WHERE id = ${id}
+      RETURNING *
+    `.then(() => this.findOne(id));
   }
 }

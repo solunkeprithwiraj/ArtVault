@@ -164,6 +164,37 @@ function GalleryContent() {
     }
   };
 
+  const handleTogglePin = async (id: string) => {
+    try {
+      const updated = await api.artPieces.togglePin(id);
+      setPieces((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      toast(updated.isPinned ? 'Pinned to top' : 'Unpinned', 'success');
+    } catch (err: any) {
+      toast(err.message || 'Failed to pin', 'error');
+    }
+  };
+
+  const handleSurpriseMe = async () => {
+    try {
+      const piece = await api.artPieces.random();
+      if (piece) {
+        const idx = pieces.findIndex((p) => p.id === piece.id);
+        if (idx !== -1) {
+          setSelectedIndex(idx);
+        } else {
+          // Piece not in current view — open it directly
+          setSelectedIndex(null);
+          setPieces((prev) => [piece, ...prev]);
+          setTimeout(() => setSelectedIndex(0), 50);
+        }
+      } else {
+        toast('No pieces yet', 'info');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Failed', 'error');
+    }
+  };
+
   const handleOpen = (id: string) => {
     const idx = pieces.findIndex((p) => p.id === id);
     if (idx !== -1) setSelectedIndex(idx);
@@ -252,9 +283,23 @@ function GalleryContent() {
             <span className="ml-2 text-themed-muted">({total} pieces)</span>
           )}
         </p>
-        {collectionName && (
-          <a href="/" className="mt-2 inline-block text-sm accent-text hover:underline">&larr; Back to all</a>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {collectionName && (
+            <a href="/" className="text-sm accent-text hover:underline">&larr; Back to all</a>
+          )}
+          <button
+            onClick={handleSurpriseMe}
+            className="rounded-lg bg-themed-input px-3 py-1.5 text-sm text-themed-secondary hover:text-themed"
+          >
+            Surprise me
+          </button>
+          <a href="/discover" className="rounded-lg bg-themed-input px-3 py-1.5 text-sm text-themed-secondary hover:text-themed">
+            Discover
+          </a>
+          <span className="hidden text-xs text-themed-muted sm:inline-flex sm:items-center sm:ml-2">
+            <kbd className="rounded border border-themed bg-themed-input px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>+<kbd className="rounded border border-themed bg-themed-input px-1 py-0.5 font-mono text-[10px]">K</kbd> command palette
+          </span>
+        </div>
       </div>
 
       {/* Search bar + reorder toggle */}

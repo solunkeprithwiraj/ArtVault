@@ -27,12 +27,15 @@ const TYPE_ICONS: Record<string, string> = {
 export default function DashboardPage() {
   const { toast } = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [highlight, setHighlight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.artPieces
-      .stats()
-      .then(setStats)
+    Promise.all([
+      api.artPieces.stats(),
+      api.artPieces.dailyHighlight(),
+    ])
+      .then(([s, h]) => { setStats(s); setHighlight(h); })
       .catch((err) => toast(err.message || 'Failed to load stats', 'error'))
       .finally(() => setLoading(false));
   }, [toast]);
@@ -58,6 +61,34 @@ export default function DashboardPage() {
         <StatCard label="Collections" value={stats.byCollection.length} icon="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
         <StatCard label="Tags" value="-" icon="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </div>
+
+      {/* Daily highlight */}
+      {highlight && (
+        <div className="mb-8 overflow-hidden rounded-xl border border-themed bg-themed-card">
+          <div className="flex flex-col sm:flex-row">
+            <div className="sm:w-72 shrink-0">
+              {highlight.mediaType === 'IMAGE' ? (
+                <img src={highlight.sourceUrl} alt={highlight.title} className="h-48 w-full object-cover sm:h-full" />
+              ) : (
+                <div className="flex h-48 items-center justify-center bg-themed-input sm:h-full">
+                  <span className="text-themed-muted">{highlight.mediaType}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col justify-center p-6">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider accent-text">Piece of the Day</p>
+              <h2 className="text-xl font-bold text-themed">{highlight.title}</h2>
+              {highlight.description && <p className="mt-2 text-sm text-themed-secondary">{highlight.description}</p>}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {highlight.tags?.map((tag: string) => (
+                  <span key={tag} className="rounded-full accent-soft-bg px-2.5 py-0.5 text-xs accent-text">{tag}</span>
+                ))}
+              </div>
+              <a href={`/edit/${highlight.id}`} className="mt-4 text-sm accent-text hover:underline">View &rarr;</a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* By type */}

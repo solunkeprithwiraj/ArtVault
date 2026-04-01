@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { MediaRenderer } from './media-renderer';
 import { ZoomableImage } from './zoomable-image';
 import { Notes } from './notes';
 import { useTouch } from '@/lib/use-touch';
 import { ShareButton } from './share-button';
+import { api } from '@/lib/api';
 
 interface LightboxProps {
   piece: {
@@ -44,6 +45,16 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
       document.body.style.overflow = '';
     };
   }, [piece, handleKeyDown]);
+
+  const [related, setRelated] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (piece?.id) {
+      api.artPieces.related(piece.id).then(setRelated).catch(() => setRelated([]));
+    } else {
+      setRelated([]);
+    }
+  }, [piece?.id]);
 
   const touchHandlers = useTouch(
     useMemo(
@@ -151,6 +162,28 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
 
             {/* Notes */}
             {piece.id && <Notes artPieceId={piece.id} />}
+
+            {/* Related pieces */}
+            {related.length > 0 && (
+              <div className="mt-4 border-t border-themed pt-4">
+                <h4 className="mb-3 text-sm font-semibold text-themed-secondary">Related</h4>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {related.map((r: any) => (
+                    <a
+                      key={r.id}
+                      href={`/edit/${r.id}`}
+                      className="h-16 w-20 shrink-0 overflow-hidden rounded-lg border border-themed hover:border-[var(--accent)]"
+                    >
+                      {r.mediaType === 'IMAGE' ? (
+                        <img src={r.sourceUrl} alt={r.title} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-themed-input text-[8px] text-themed-muted">{r.mediaType}</div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Mobile prev/next */}
             {(onPrev || onNext) && (
