@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { MediaRenderer } from './media-renderer';
+import { ZoomableImage } from './zoomable-image';
 import { Notes } from './notes';
 
 interface LightboxProps {
@@ -82,12 +83,16 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
         )}
 
         <div className="overflow-hidden rounded-xl bg-themed-card shadow-2xl">
-          <MediaRenderer
-            mediaType={piece.mediaType}
-            sourceUrl={piece.sourceUrl}
-            title={piece.title}
-            className="max-h-[70vh] object-contain"
-          />
+          {piece.mediaType === 'IMAGE' ? (
+            <ZoomableImage src={piece.sourceUrl} alt={piece.title} className="max-h-[70vh]" />
+          ) : (
+            <MediaRenderer
+              mediaType={piece.mediaType}
+              sourceUrl={piece.sourceUrl}
+              title={piece.title}
+              className="max-h-[70vh] object-contain"
+            />
+          )}
           <div className="p-4 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-bold text-themed sm:text-xl">{piece.title}</h2>

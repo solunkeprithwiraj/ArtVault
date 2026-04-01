@@ -70,6 +70,10 @@ export const api = {
     reorder: (ids: string[]) =>
       request<any>('/art-pieces/reorder', { method: 'POST', body: JSON.stringify({ ids }) }),
     stats: () => request<any>('/art-pieces/stats'),
+    checkDuplicate: (url: string) =>
+      request<any>(`/art-pieces/check-duplicate?url=${encodeURIComponent(url)}`),
+    checkLinks: () => request<any>('/art-pieces/check-links'),
+    timeline: () => request<any[]>('/art-pieces/timeline'),
     batchDelete: (ids: string[]) =>
       request<any>('/art-pieces/batch/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
     batchMove: (ids: string[], collectionId: string | null) =>

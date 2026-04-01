@@ -10,8 +10,8 @@ interface FilterBarProps {
   onSortChange: (sort: string) => void;
   showFavorites: boolean;
   onToggleFavorites: () => void;
-  layout: 'masonry' | 'grid' | 'list';
-  onLayoutChange: (layout: 'masonry' | 'grid' | 'list') => void;
+  layout: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio';
+  onLayoutChange: (layout: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio') => void;
 }
 
 export function FilterBar({
@@ -75,31 +75,21 @@ export function FilterBar({
         {/* Layout toggles */}
         <div className="flex rounded-lg border border-themed bg-themed-input p-0.5">
           {([
-            { value: 'masonry' as const, icon: 'M3 3h7v7H3zM14 3h7v4H14zM14 10h7v7H14zM3 13h7v4H3z' },
-            { value: 'grid' as const, icon: 'M3 3h7v7H3zM14 3h7v7H14zM3 14h7v7H3zM14 14h7v7H14z' },
-            { value: 'list' as const, icon: 'M3 6h18M3 12h18M3 18h18' },
-          ]).map(({ value, icon }) => (
+            { value: 'masonry' as const, label: 'Masonry' },
+            { value: 'grid' as const, label: 'Grid' },
+            { value: 'list' as const, label: 'List' },
+            { value: 'museum' as const, label: 'Museum' },
+            { value: 'portfolio' as const, label: 'Portfolio' },
+          ]).map(({ value, label }) => (
             <button
               key={value}
               onClick={() => onLayoutChange(value)}
               className={`rounded-md p-1.5 transition-colors ${
                 layout === value ? 'bg-themed-card text-themed shadow-sm' : 'text-themed-muted hover:text-themed'
               }`}
-              title={value.charAt(0).toUpperCase() + value.slice(1)}
+              title={label}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              >
-                {value === 'list' ? (
-                  <>
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </>
-                ) : (
-                  <path d={icon} />
-                )}
-              </svg>
+              <span className="text-[10px] font-medium">{label.slice(0, 3)}</span>
             </button>
           ))}
         </div>

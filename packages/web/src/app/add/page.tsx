@@ -23,6 +23,7 @@ export default function AddPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [autoDetected, setAutoDetected] = useState(false);
+  const [duplicate, setDuplicate] = useState<any>(null);
 
   useEffect(() => {
     api.collections.list().then(setCollections).catch(() => {});
@@ -40,6 +41,14 @@ export default function AddPage() {
       setAutoDetected(false);
     }
     setForm(newForm);
+
+    // Check for duplicates
+    const urlToCheck = detected?.sourceUrl || url;
+    if (urlToCheck) {
+      api.artPieces.checkDuplicate(urlToCheck).then((res) => setDuplicate(res.existing)).catch(() => {});
+    } else {
+      setDuplicate(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,6 +141,12 @@ export default function AddPage() {
               <p className="mt-1.5 text-xs accent-text">
                 Auto-detected as {form.mediaType === 'IFRAME' ? 'Embed' : form.mediaType.charAt(0) + form.mediaType.slice(1).toLowerCase()}
               </p>
+            )}
+            {duplicate && (
+              <div className="mt-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
+                Duplicate: &ldquo;{duplicate.title}&rdquo; already uses this URL.{' '}
+                <a href={`/edit/${duplicate.id}`} className="underline">View it</a>
+              </div>
             )}
           </div>
 

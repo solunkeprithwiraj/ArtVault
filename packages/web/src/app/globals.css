@@ -171,6 +171,34 @@ body {
   margin-bottom: 0;
 }
 
+/* Museum layout — single column, large with generous spacing */
+.museum-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.museum-layout .masonry-item {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+/* Portfolio layout — 2-column with large cards */
+.portfolio-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .portfolio-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Slideshow progress bar */
 @keyframes slideshow-progress {
   from { width: 0; }

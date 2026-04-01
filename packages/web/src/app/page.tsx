@@ -32,7 +32,7 @@ function GalleryContent() {
   const [mediaType, setMediaType] = useState('');
   const [sort, setSort] = useState('custom');
   const [showFavorites, setShowFavorites] = useState(false);
-  const [layout, setLayout] = useState<'masonry' | 'grid' | 'list'>('masonry');
+  const [layout, setLayout] = useState<'masonry' | 'grid' | 'list' | 'museum' | 'portfolio'>('masonry');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -128,10 +128,10 @@ function GalleryContent() {
   // Persist layout preference
   useEffect(() => {
     const saved = localStorage.getItem('artvault_layout');
-    if (saved === 'masonry' || saved === 'grid' || saved === 'list') setLayout(saved);
+    if (saved === 'masonry' || saved === 'grid' || saved === 'list' || saved === 'museum' || saved === 'portfolio') setLayout(saved);
   }, []);
 
-  const handleLayoutChange = (l: 'masonry' | 'grid' | 'list') => {
+  const handleLayoutChange = (l: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio') => {
     setLayout(l);
     localStorage.setItem('artvault_layout', l);
   };
@@ -232,10 +232,12 @@ function GalleryContent() {
   );
   useKeyboard(shortcuts);
 
-  const layoutContainerClass = {
+  const layoutContainerClass: Record<string, string> = {
     masonry: 'masonry',
     grid: 'grid-uniform',
     list: 'list-layout',
+    museum: 'museum-layout',
+    portfolio: 'portfolio-layout',
   };
 
   return (

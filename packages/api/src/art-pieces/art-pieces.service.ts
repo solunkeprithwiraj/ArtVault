@@ -11,15 +11,44 @@ interface FindAllOptions {
   search?: string;
   mediaType?: MediaType;
   favorite?: boolean;
-  sort?: string; // 'newest' | 'oldest' | 'title' | 'title_desc' | 'custom'
+  sort?: string;
+  fuzzy?: boolean;
 }
 
 @Injectable()
 export class ArtPiecesService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(opts: FindAllOptions = {}) {
-    const { page = 1, limit = 20, tags, collectionId, search, mediaType, favorite, sort = 'custom' } = opts;
+  async findAll(opts: FindAllOptions = {}) {
+    const { page = 1, limit = 20, tags, collectionId, search, mediaType, favorite, sort = 'custom', fuzzy } = opts;
+
+    // Fuzzy search via pg_trgm
+    if (search && fuzzy) {
+      const results: any[] = await this.prisma.$queryRaw`
+        SELECT ap.*, similarity(ap.title, ${search}) AS sim
+        FROM art_pieces ap
+        WHERE similarity(ap.title, ${search}) > 0.1
+           OR similarity(COALESCE(ap.description, ''), ${search}) > 0.1
+        ORDER BY sim DESC
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `;
+      const countResult: any[] = await this.prisma.$queryRaw`
+        SELECT COUNT(*)::int AS total FROM art_pieces ap
+        WHERE similarity(ap.title, ${search}) > 0.1
+           OR similarity(COALESCE(ap.description, ''), ${search}) > 0.1
+      `;
+      // Fetch full objects with relations
+      const ids = results.map((r) => r.id);
+      const data = ids.length
+        ? await this.prisma.artPiece.findMany({
+            where: { id: { in: ids } },
+            include: { collection: true },
+          })
+        : [];
+      // Preserve similarity order
+      const ordered = ids.map((id) => data.find((d) => d.id === id)).filter(Boolean);
+      return { data: ordered, total: countResult[0]?.total || 0, page, limit };
+    }
 
     const where: Prisma.ArtPieceWhereInput = {};
     if (tags?.length) where.tags = { hasEvery: tags };
@@ -58,6 +87,15 @@ export class ArtPiecesService {
       where: { id },
       include: { collection: true, notes: { orderBy: { createdAt: 'desc' } } },
     });
+  }
+
+  // Duplicate detection
+  async checkDuplicate(sourceUrl: string) {
+    const existing = await this.prisma.artPiece.findFirst({
+      where: { sourceUrl },
+      select: { id: true, title: true, sourceUrl: true },
+    });
+    return { duplicate: !!existing, existing };
   }
 
   create(dto: CreateArtPieceDto) {
@@ -125,7 +163,6 @@ export class ArtPiecesService {
       });
       return { updated: result.count };
     }
-    // Add mode: merge tags per piece
     const pieces = await this.prisma.artPiece.findMany({
       where: { id: { in: ids } },
       select: { id: true, tags: true },
@@ -139,6 +176,55 @@ export class ArtPiecesService {
       ),
     );
     return { updated: pieces.length };
+  }
+
+  // Broken link checker
+  async checkLinks() {
+    const pieces = await this.prisma.artPiece.findMany({
+      select: { id: true, title: true, sourceUrl: true, mediaType: true },
+    });
+
+    const results = await Promise.allSettled(
+      pieces.map(async (p) => {
+        try {
+          const res = await fetch(p.sourceUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(10000),
+            headers: { 'User-Agent': 'ArtVault/1.0' },
+          });
+          return { ...p, status: res.status, ok: res.ok };
+        } catch (err: any) {
+          return { ...p, status: 0, ok: false, error: err.message };
+        }
+      }),
+    );
+
+    const checked = results.map((r) => (r.status === 'fulfilled' ? r.value : null)).filter(Boolean);
+    const broken = checked.filter((c) => !c!.ok);
+
+    return {
+      total: pieces.length,
+      checked: checked.length,
+      broken: broken.length,
+      details: broken,
+    };
+  }
+
+  // Timeline: group by date
+  async timeline() {
+    const pieces = await this.prisma.artPiece.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { collection: true },
+    });
+
+    const groups: Record<string, any[]> = {};
+    for (const p of pieces) {
+      const date = p.createdAt.toISOString().split('T')[0];
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(p);
+    }
+
+    return Object.entries(groups).map(([date, items]) => ({ date, items }));
   }
 
   async stats() {

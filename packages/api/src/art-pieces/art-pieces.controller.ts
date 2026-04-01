@@ -27,6 +27,7 @@ export class ArtPiecesController {
     @Query('mediaType') mediaType?: string,
     @Query('favorite') favorite?: string,
     @Query('sort') sort?: string,
+    @Query('fuzzy') fuzzy?: string,
   ) {
     return this.service.findAll({
       page: page ? +page : undefined,
@@ -37,6 +38,7 @@ export class ArtPiecesController {
       mediaType: mediaType as MediaType | undefined,
       favorite: favorite === 'true' ? true : favorite === 'false' ? false : undefined,
       sort,
+      fuzzy: fuzzy === 'true',
     });
   }
 
@@ -48,6 +50,21 @@ export class ArtPiecesController {
   @Get('stats')
   stats() {
     return this.service.stats();
+  }
+
+  @Get('check-duplicate')
+  checkDuplicate(@Query('url') url: string) {
+    return this.service.checkDuplicate(url);
+  }
+
+  @Get('check-links')
+  checkLinks() {
+    return this.service.checkLinks();
+  }
+
+  @Get('timeline')
+  timeline() {
+    return this.service.timeline();
   }
 
   @Get(':id')

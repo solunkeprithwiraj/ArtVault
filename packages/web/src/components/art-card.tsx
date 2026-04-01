@@ -14,7 +14,7 @@ interface ArtCardProps {
     isFavorite?: boolean;
     collection?: { name: string } | null;
   };
-  layout?: 'masonry' | 'grid' | 'list';
+  layout?: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio';
   index?: number;
   selected?: boolean;
   selectMode?: boolean;
