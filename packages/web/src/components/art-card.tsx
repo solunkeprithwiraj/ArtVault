@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { MediaRenderer } from './media-renderer';
 
 interface ArtCardProps {
@@ -15,6 +16,9 @@ interface ArtCardProps {
   };
   layout?: 'masonry' | 'grid' | 'list';
   index?: number;
+  selected?: boolean;
+  selectMode?: boolean;
+  onSelect?: (id: string) => void;
   onOpen?: (id: string) => void;
   onDelete?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
@@ -29,6 +33,9 @@ export function ArtCard({
   piece,
   layout = 'masonry',
   index = 0,
+  selected,
+  selectMode,
+  onSelect,
   onOpen,
   onDelete,
   onToggleFavorite,
@@ -39,29 +46,60 @@ export function ArtCard({
   onDrop,
 }: ArtCardProps) {
   const isListView = layout === 'list';
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
+
+  const handleClick = () => {
+    if (selectMode && onSelect) {
+      onSelect(piece.id);
+    } else {
+      onOpen?.(piece.id);
+    }
+  };
 
   return (
     <div
-      className={`animate-card-enter group relative overflow-hidden rounded-xl bg-themed-card border border-themed transition-all hover:border-[var(--border-hover)] hover:shadow-lg ${
-        isListView ? 'flex gap-4' : 'masonry-item'
-      }`}
-      style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
+      className={`animate-card-enter group relative overflow-hidden rounded-xl bg-themed-card border transition-all hover:shadow-lg ${
+        selected ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]' : 'border-themed hover:border-[var(--border-hover)]'
+      } ${isListView ? 'flex gap-4' : 'masonry-item'}`}
+      style={{
+        animationDelay: `${Math.min(index * 50, 500)}ms`,
+        ...(dominantColor && !isListView ? { boxShadow: `0 8px 24px ${dominantColor.replace('rgb', 'rgba').replace(')', ',0.15)')}` } : {}),
+      }}
       draggable={draggable}
       onDragStart={(e) => onDragStart?.(e, piece.id)}
       onDragOver={(e) => { e.preventDefault(); onDragOver?.(e); }}
       onDragLeave={(e) => onDragLeave?.(e)}
       onDrop={(e) => onDrop?.(e, piece.id)}
     >
+      {/* Selection checkbox */}
+      {selectMode && (
+        <div className="absolute left-2 top-2 z-10">
+          <button
+            onClick={(e) => { e.stopPropagation(); onSelect?.(piece.id); }}
+            className={`flex h-6 w-6 items-center justify-center rounded-md border-2 transition-colors ${
+              selected ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-white/50 bg-black/40'
+            }`}
+          >
+            {selected && (
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Media */}
       <div
         className={`cursor-pointer ${isListView ? 'h-24 w-36 shrink-0 sm:h-28 sm:w-44' : ''}`}
-        onClick={() => onOpen?.(piece.id)}
+        onClick={handleClick}
       >
         <MediaRenderer
           mediaType={piece.mediaType}
           sourceUrl={piece.sourceUrl}
           title={piece.title}
           className={isListView ? 'h-full object-cover' : ''}
+          onColorExtract={piece.mediaType === 'IMAGE' ? setDominantColor : undefined}
         />
       </div>
 
@@ -77,53 +115,38 @@ export function ArtCard({
           {!isListView && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {piece.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">
-                  {tag}
-                </span>
+                <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">{tag}</span>
               ))}
             </div>
           )}
           {piece.collection && (
-            <p className={`text-xs accent-text ${isListView ? 'mt-0.5' : 'mt-2'}`}>
-              {piece.collection.name}
-            </p>
+            <p className={`text-xs accent-text ${isListView ? 'mt-0.5' : 'mt-2'}`}>{piece.collection.name}</p>
           )}
         </div>
 
-        {/* List view tags */}
         {isListView && piece.tags.length > 0 && (
           <div className="hidden shrink-0 gap-1.5 lg:flex">
             {piece.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">
-                {tag}
-              </span>
+              <span key={tag} className="rounded-full bg-themed-input px-2.5 py-0.5 text-xs text-themed-secondary">{tag}</span>
             ))}
-            {piece.tags.length > 3 && (
-              <span className="text-xs text-themed-muted">+{piece.tags.length - 3}</span>
-            )}
+            {piece.tags.length > 3 && <span className="text-xs text-themed-muted">+{piece.tags.length - 3}</span>}
           </div>
         )}
 
-        {/* List view inline actions */}
         {isListView && (
           <div className="flex shrink-0 items-center gap-2">
             {onToggleFavorite && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }}
-                className="p-1 transition-colors"
-              >
+              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }} className="p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                   fill={piece.isFavorite ? 'var(--accent)' : 'none'}
                   stroke={piece.isFavorite ? 'var(--accent)' : 'currentColor'}
-                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-themed-muted"
-                >
+                  strokeWidth="2" className="text-themed-muted">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </button>
             )}
             <a href={`/edit/${piece.id}`} className="p-1 text-themed-muted hover:text-themed">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
@@ -132,39 +155,26 @@ export function ArtCard({
         )}
       </div>
 
-      {/* Overlay action buttons (masonry/grid only) */}
-      {!isListView && (
+      {/* Overlay actions (masonry/grid) */}
+      {!isListView && !selectMode && (
         <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           {onToggleFavorite && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }}
-              className="rounded-full bg-black/60 p-1.5 transition-colors"
-            >
+            <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(piece.id); }} className="rounded-full bg-black/60 p-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                fill={piece.isFavorite ? '#ec4899' : 'none'}
-                stroke={piece.isFavorite ? '#ec4899' : '#a3a3a3'}
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              >
+                fill={piece.isFavorite ? '#ec4899' : 'none'} stroke={piece.isFavorite ? '#ec4899' : '#a3a3a3'} strokeWidth="2">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </button>
           )}
-          <a
-            href={`/edit/${piece.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-white"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <a href={`/edit/${piece.id}`} onClick={(e) => e.stopPropagation()} className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </a>
           {onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(piece.id); }}
-              className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-red-400"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button onClick={(e) => { e.stopPropagation(); onDelete(piece.id); }} className="rounded-full bg-black/60 p-1.5 text-neutral-400 hover:text-red-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
@@ -172,10 +182,9 @@ export function ArtCard({
         </div>
       )}
 
-      {/* Drag handle */}
       {draggable && !isListView && (
         <div className="absolute left-2 top-2 cursor-grab rounded-full bg-black/60 p-1.5 text-neutral-400 opacity-0 transition-opacity group-hover:opacity-100">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="9" cy="5" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="19" r="1" />
           </svg>
         </div>

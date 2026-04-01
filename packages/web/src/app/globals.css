@@ -171,6 +171,12 @@ body {
   margin-bottom: 0;
 }
 
+/* Slideshow progress bar */
+@keyframes slideshow-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
 /* Theme-aware utility classes */
 .bg-themed { background-color: var(--bg-primary); }
 .bg-themed-card { background-color: var(--bg-card); }

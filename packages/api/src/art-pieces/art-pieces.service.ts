@@ -104,6 +104,43 @@ export class ArtPiecesService {
     return { success: true };
   }
 
+  async batchDelete(ids: string[]) {
+    const result = await this.prisma.artPiece.deleteMany({ where: { id: { in: ids } } });
+    return { deleted: result.count };
+  }
+
+  async batchMove(ids: string[], collectionId: string | null) {
+    const result = await this.prisma.artPiece.updateMany({
+      where: { id: { in: ids } },
+      data: { collectionId },
+    });
+    return { updated: result.count };
+  }
+
+  async batchTag(ids: string[], tags: string[], mode: 'add' | 'set') {
+    if (mode === 'set') {
+      const result = await this.prisma.artPiece.updateMany({
+        where: { id: { in: ids } },
+        data: { tags },
+      });
+      return { updated: result.count };
+    }
+    // Add mode: merge tags per piece
+    const pieces = await this.prisma.artPiece.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, tags: true },
+    });
+    await this.prisma.$transaction(
+      pieces.map((p) =>
+        this.prisma.artPiece.update({
+          where: { id: p.id },
+          data: { tags: [...new Set([...p.tags, ...tags])] },
+        }),
+      ),
+    );
+    return { updated: pieces.length };
+  }
+
   async stats() {
     const [total, favorites, byType, byCollection, recent] = await Promise.all([
       this.prisma.artPiece.count(),

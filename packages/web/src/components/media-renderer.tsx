@@ -1,17 +1,82 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { api } from '@/lib/api';
 
 interface MediaRendererProps {
   mediaType: 'IMAGE' | 'VIDEO' | 'IFRAME';
   sourceUrl: string;
   title: string;
   className?: string;
+  onColorExtract?: (color: string) => void;
 }
 
 function getYouTubeThumbnail(url: string): string | null {
   const match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
   return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+}
+
+function extractDominantColor(img: HTMLImageElement): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, 10, 10);
+    const data = ctx.getImageData(0, 0, 10, 10).data;
+    let r = 0, g = 0, b = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+      count++;
+    }
+    r = Math.round(r / count);
+    g = Math.round(g / count);
+    b = Math.round(b / count);
+    return `rgb(${r},${g},${b})`;
+  } catch {
+    return null;
+  }
+}
+
+function ProxiedImage({
+  sourceUrl,
+  title,
+  className,
+  onColorExtract,
+}: Omit<MediaRendererProps, 'mediaType'>) {
+  const [src, setSrc] = useState(sourceUrl);
+  const [failed, setFailed] = useState(false);
+
+  const handleError = () => {
+    if (!failed) {
+      setFailed(true);
+      setSrc(api.proxyUrl(sourceUrl));
+    }
+  };
+
+  const handleLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      if (!onColorExtract) return;
+      const color = extractDominantColor(e.currentTarget);
+      if (color) onColorExtract(color);
+    },
+    [onColorExtract],
+  );
+
+  return (
+    <img
+      src={src}
+      alt={title}
+      className={`w-full rounded-lg object-cover ${className}`}
+      loading="lazy"
+      crossOrigin="anonymous"
+      onError={handleError}
+      onLoad={handleLoad}
+    />
+  );
 }
 
 function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'mediaType'>) {
@@ -21,7 +86,6 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -31,7 +95,6 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
       },
       { rootMargin: '200px' },
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -49,7 +112,6 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
         ) : (
           <span className="text-sm text-themed-muted">{title}</span>
         )}
-        {/* Play button overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="rounded-full bg-black/60 p-4 backdrop-blur-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none">
@@ -74,30 +136,23 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
   );
 }
 
-export function MediaRenderer({ mediaType, sourceUrl, title, className = '' }: MediaRendererProps) {
+export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onColorExtract }: MediaRendererProps) {
   switch (mediaType) {
     case 'IMAGE':
       return (
-        <img
-          src={sourceUrl}
-          alt={title}
-          className={`w-full rounded-lg object-cover ${className}`}
-          loading="lazy"
+        <ProxiedImage
+          sourceUrl={sourceUrl}
+          title={title}
+          className={className}
+          onColorExtract={onColorExtract}
         />
       );
-
     case 'VIDEO':
       return (
-        <video
-          src={sourceUrl}
-          className={`w-full rounded-lg ${className}`}
-          preload="metadata"
-          controls
-        >
+        <video src={sourceUrl} className={`w-full rounded-lg ${className}`} preload="metadata" controls>
           <track kind="captions" />
         </video>
       );
-
     case 'IFRAME':
       return <LazyIframe sourceUrl={sourceUrl} title={title} className={className} />;
   }

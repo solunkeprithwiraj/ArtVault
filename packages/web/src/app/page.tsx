@@ -8,6 +8,8 @@ import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
 import { ArtCard } from '@/components/art-card';
 import { Lightbox } from '@/components/lightbox';
 import { FilterBar } from '@/components/filter-bar';
+import { BatchBar } from '@/components/batch-bar';
+import { Slideshow } from '@/components/slideshow';
 import { useToast } from '@/components/toast';
 
 export default function GalleryPage() {
@@ -36,6 +38,10 @@ function GalleryContent() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [collectionName, setCollectionName] = useState<string | null>(null);
   const [reorderMode, setReorderMode] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showSlideshow, setShowSlideshow] = useState(false);
+  const [collections, setCollections] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const dragItemId = useRef<string | null>(null);
@@ -96,7 +102,20 @@ function GalleryContent() {
   useEffect(() => {
     loadPieces();
     api.artPieces.tags().then(setTags).catch(() => {});
+    api.collections.list().then(setCollections).catch(() => {});
   }, [loadPieces]);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
+  const handleBatchDone = () => {
+    setSelectedIds([]);
+    setSelectMode(false);
+    loadPieces();
+  };
 
   useEffect(() => {
     if (collectionId) {
@@ -206,6 +225,8 @@ function GalleryContent() {
       { key: '1', handler: () => handleLayoutChange('masonry') },
       { key: '2', handler: () => handleLayoutChange('grid') },
       { key: '3', handler: () => handleLayoutChange('list') },
+      { key: 's', handler: () => setSelectMode((v) => { if (v) setSelectedIds([]); return !v; }) },
+      { key: 'p', handler: () => pieces.length > 0 && setShowSlideshow(true) },
     ],
     [router],
   );
@@ -249,14 +270,35 @@ function GalleryContent() {
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
           </svg>
         </div>
-        <button
-          onClick={() => setReorderMode(!reorderMode)}
-          className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-            reorderMode ? 'accent-bg text-white' : 'bg-themed-input text-themed-secondary hover:text-themed'
-          }`}
-        >
-          {reorderMode ? 'Done Reordering' : 'Reorder'}
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelectedIds([]); setReorderMode(false); }}
+            className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              selectMode ? 'accent-bg text-white' : 'bg-themed-input text-themed-secondary hover:text-themed'
+            }`}
+          >
+            {selectMode ? `Cancel (${selectedIds.length})` : 'Select'}
+          </button>
+          {pieces.length > 0 && (
+            <button
+              onClick={() => setShowSlideshow(true)}
+              className="rounded-lg bg-themed-input px-3 py-2.5 text-sm font-medium text-themed-secondary hover:text-themed"
+              title="Slideshow (p)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => { setReorderMode(!reorderMode); setSelectMode(false); setSelectedIds([]); }}
+            className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              reorderMode ? 'accent-bg text-white' : 'bg-themed-input text-themed-secondary hover:text-themed'
+            }`}
+          >
+            {reorderMode ? 'Done' : 'Reorder'}
+          </button>
+        </div>
       </div>
 
       {/* Advanced filters */}
@@ -298,6 +340,9 @@ function GalleryContent() {
                 piece={piece}
                 layout={layout}
                 index={i}
+                selectMode={selectMode}
+                selected={selectedIds.includes(piece.id)}
+                onSelect={handleToggleSelect}
                 onOpen={handleOpen}
                 onDelete={handleDelete}
                 onToggleFavorite={handleToggleFavorite}
@@ -334,8 +379,12 @@ function GalleryContent() {
           <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">2</kbd>
           <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">3</kbd> layout
           &nbsp;&middot;&nbsp;
+          <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">s</kbd> select
+          &nbsp;&middot;&nbsp;
+          <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">p</kbd> slideshow
+          &nbsp;&middot;&nbsp;
           <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">&larr;</kbd>
-          <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">&rarr;</kbd> navigate lightbox
+          <kbd className="rounded border border-themed bg-themed-input px-1.5 py-0.5 font-mono">&rarr;</kbd> navigate
         </span>
       </div>
 
@@ -348,6 +397,19 @@ function GalleryContent() {
         hasPrev={selectedIndex !== null && selectedIndex > 0}
         hasNext={selectedIndex !== null && selectedIndex < pieces.length - 1}
       />
+
+      {selectMode && (
+        <BatchBar
+          selectedIds={selectedIds}
+          collections={collections}
+          onDone={handleBatchDone}
+          onClear={() => { setSelectedIds([]); setSelectMode(false); }}
+        />
+      )}
+
+      {showSlideshow && (
+        <Slideshow pieces={pieces} onClose={() => setShowSlideshow(false)} />
+      )}
     </>
   );
 }

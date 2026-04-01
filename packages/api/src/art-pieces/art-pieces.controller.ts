@@ -65,6 +65,21 @@ export class ArtPiecesController {
     return this.service.reorder(body.ids);
   }
 
+  @Post('batch/delete')
+  batchDelete(@Body() body: { ids: string[] }) {
+    return this.service.batchDelete(body.ids);
+  }
+
+  @Post('batch/move')
+  batchMove(@Body() body: { ids: string[]; collectionId: string | null }) {
+    return this.service.batchMove(body.ids, body.collectionId);
+  }
+
+  @Post('batch/tag')
+  batchTag(@Body() body: { ids: string[]; tags: string[]; mode: 'add' | 'set' }) {
+    return this.service.batchTag(body.ids, body.tags, body.mode);
+  }
+
   @Patch(':id/favorite')
   toggleFavorite(@Param('id') id: string) {
     return this.service.toggleFavorite(id);

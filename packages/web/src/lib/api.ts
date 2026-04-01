@@ -70,6 +70,12 @@ export const api = {
     reorder: (ids: string[]) =>
       request<any>('/art-pieces/reorder', { method: 'POST', body: JSON.stringify({ ids }) }),
     stats: () => request<any>('/art-pieces/stats'),
+    batchDelete: (ids: string[]) =>
+      request<any>('/art-pieces/batch/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+    batchMove: (ids: string[], collectionId: string | null) =>
+      request<any>('/art-pieces/batch/move', { method: 'POST', body: JSON.stringify({ ids, collectionId }) }),
+    batchTag: (ids: string[], tags: string[], mode: 'add' | 'set') =>
+      request<any>('/art-pieces/batch/tag', { method: 'POST', body: JSON.stringify({ ids, tags, mode }) }),
   },
   collections: {
     list: () => request<any[]>('/collections'),
