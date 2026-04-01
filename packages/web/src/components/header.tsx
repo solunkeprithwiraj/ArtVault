@@ -39,6 +39,7 @@ export function Header() {
                         { href: '/timeline', label: 'Timeline' },
                         { href: '/compare', label: 'Compare' },
                         { href: '/moodboard', label: 'Mood Board' },
+                        { href: '/clipper', label: 'Web Clipper' },
                       ].map(({ href, label }) => (
                         <a
                           key={href}
