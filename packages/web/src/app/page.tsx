@@ -26,7 +26,7 @@ function GalleryContent() {
   const { toast } = useToast();
 
   const [pieces, setPieces] = useState<any[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<Array<{ name: string; count: number }>>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [mediaType, setMediaType] = useState('');
@@ -47,7 +47,7 @@ function GalleryContent() {
   const dragItemId = useRef<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const LIMIT = 20;
+  const LIMIT = 10;
   const collectionId = searchParams.get('collectionId');
   const hasMore = pieces.length < total;
   const selectedPiece = selectedIndex !== null ? pieces[selectedIndex] : null;

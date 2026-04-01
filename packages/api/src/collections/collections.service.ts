@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCollectionDto, UpdateCollectionDto } from './collections.dto';
 
+const PREVIEW_SELECT = {
+  artPieces: {
+    take: 4,
+    where: { mediaType: 'IMAGE' as const },
+    select: { id: true, sourceUrl: true, title: true },
+    orderBy: { createdAt: 'desc' as const },
+  },
+};
+
 @Injectable()
 export class CollectionsService {
   constructor(private prisma: PrismaService) {}
@@ -12,6 +21,7 @@ export class CollectionsService {
       include: {
         _count: { select: { artPieces: true, children: true } },
         parent: { select: { id: true, name: true } },
+        ...PREVIEW_SELECT,
       },
     });
   }
@@ -22,7 +32,10 @@ export class CollectionsService {
       include: {
         artPieces: true,
         children: {
-          include: { _count: { select: { artPieces: true } } },
+          include: {
+            _count: { select: { artPieces: true } },
+            ...PREVIEW_SELECT,
+          },
           orderBy: { name: 'asc' },
         },
         parent: { select: { id: true, name: true } },
@@ -36,13 +49,18 @@ export class CollectionsService {
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { artPieces: true } },
+        ...PREVIEW_SELECT,
         children: {
           orderBy: { name: 'asc' },
           include: {
             _count: { select: { artPieces: true } },
+            ...PREVIEW_SELECT,
             children: {
               orderBy: { name: 'asc' },
-              include: { _count: { select: { artPieces: true } } },
+              include: {
+                _count: { select: { artPieces: true } },
+                ...PREVIEW_SELECT,
+              },
             },
           },
         },

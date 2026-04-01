@@ -114,7 +114,7 @@ export function ZoomableImage({ src, alt, className = '' }: ZoomableImageProps) 
         <img
           src={src}
           alt={alt}
-          className="max-h-[70vh] w-auto object-contain transition-transform"
+          className="max-h-[50vh] w-auto max-w-full object-contain transition-transform"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transitionDuration: dragging ? '0ms' : '150ms',

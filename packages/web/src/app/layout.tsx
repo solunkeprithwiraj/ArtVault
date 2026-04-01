@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Header } from '@/components/header';
@@ -7,8 +7,11 @@ export const metadata: Metadata = {
   title: 'ArtVault',
   description: 'Your personal art gallery',
   manifest: '/manifest.json',
-  themeColor: '#ec4899',
   icons: { icon: '/icon-192.svg', apple: '/icon-192.svg' },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#ec4899',
 };
 
 export default function RootLayout({

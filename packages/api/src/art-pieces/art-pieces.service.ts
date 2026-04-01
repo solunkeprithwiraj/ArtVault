@@ -124,10 +124,17 @@ export class ArtPiecesService {
     return this.prisma.artPiece.delete({ where: { id } });
   }
 
-  allTags() {
-    return this.prisma.artPiece
-      .findMany({ select: { tags: true } })
-      .then((rows) => [...new Set(rows.flatMap((r) => r.tags))].sort());
+  async allTags() {
+    const rows = await this.prisma.artPiece.findMany({ select: { tags: true } });
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      for (const tag of row.tags) {
+        counts[tag] = (counts[tag] || 0) + 1;
+      }
+    }
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
   }
 
   async reorder(ids: string[]) {

@@ -12,7 +12,9 @@
     "@artvault/shared": "workspace:*",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@radix-ui/react-dialog": "^1.1.0",
+    "@radix-ui/react-scroll-area": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

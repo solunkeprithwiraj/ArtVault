@@ -21,6 +21,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip non-http(s) schemes (chrome-extension, etc.)
+  if (!url.protocol.startsWith('http')) return;
+
   // Cache images from external sources
   if (request.destination === 'image') {
     event.respondWith(

@@ -1,7 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+
+interface TagWithCount {
+  name: string;
+  count: number;
+}
+
 interface FilterBarProps {
-  tags: string[];
+  tags: TagWithCount[];
   activeTags: string[];
   onToggleTag: (tag: string) => void;
   mediaType: string;
@@ -13,6 +20,8 @@ interface FilterBarProps {
   layout: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio';
   onLayoutChange: (layout: 'masonry' | 'grid' | 'list' | 'museum' | 'portfolio') => void;
 }
+
+const TOP_TAGS_COUNT = 10;
 
 export function FilterBar({
   tags,
@@ -27,14 +36,18 @@ export function FilterBar({
   layout,
   onLayoutChange,
 }: FilterBarProps) {
+  const [showAllTags, setShowAllTags] = useState(false);
+
   const selectClass =
     'rounded-lg border border-themed bg-themed-input px-3 py-2 text-sm text-themed focus:border-[var(--accent)] focus:outline-none';
+
+  const visibleTags = showAllTags ? tags : tags.slice(0, TOP_TAGS_COUNT);
+  const hiddenCount = tags.length - TOP_TAGS_COUNT;
 
   return (
     <div className="mb-6 space-y-4">
       {/* Top row: filters + layout toggle */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Media type filter */}
         <select value={mediaType} onChange={(e) => onMediaTypeChange(e.target.value)} className={selectClass}>
           <option value="">All Types</option>
           <option value="IMAGE">Images</option>
@@ -42,7 +55,6 @@ export function FilterBar({
           <option value="IFRAME">Embeds</option>
         </select>
 
-        {/* Sort */}
         <select value={sort} onChange={(e) => onSortChange(e.target.value)} className={selectClass}>
           <option value="custom">Custom Order</option>
           <option value="newest">Newest First</option>
@@ -51,7 +63,6 @@ export function FilterBar({
           <option value="title_desc">Title Z-A</option>
         </select>
 
-        {/* Favorites toggle */}
         <button
           onClick={onToggleFavorites}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -69,10 +80,8 @@ export function FilterBar({
           Favorites
         </button>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Layout toggles */}
         <div className="flex rounded-lg border border-themed bg-themed-input p-0.5">
           {([
             { value: 'masonry' as const, label: 'Masonry' },
@@ -95,9 +104,9 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Tags row */}
+      {/* Tags row with counts */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => activeTags.length > 0 && activeTags.forEach(onToggleTag)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
@@ -108,19 +117,43 @@ export function FilterBar({
           >
             All
           </button>
-          {tags.map((tag) => (
+          {visibleTags.map((tag) => {
+            const isActive = activeTags.includes(tag.name);
+            const maxCount = tags[0]?.count || 1;
+            const opacity = 0.15 + (tag.count / maxCount) * 0.85;
+            return (
+              <button
+                key={tag.name}
+                onClick={() => onToggleTag(tag.name)}
+                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all sm:px-4 sm:text-sm ${
+                  isActive
+                    ? 'accent-bg text-white shadow-sm'
+                    : 'bg-themed-input text-themed-secondary hover:text-themed'
+                }`}
+              >
+                {tag.name}
+                <span
+                  className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold leading-none"
+                  style={{
+                    backgroundColor: isActive
+                      ? `rgba(255,255,255,${opacity * 0.3})`
+                      : `rgba(236,72,153,${opacity})`,
+                    color: isActive ? 'white' : 'white',
+                  }}
+                >
+                  {tag.count}
+                </span>
+              </button>
+            );
+          })}
+          {hiddenCount > 0 && (
             <button
-              key={tag}
-              onClick={() => onToggleTag(tag)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
-                activeTags.includes(tag)
-                  ? 'accent-bg text-white'
-                  : 'bg-themed-input text-themed-secondary hover:text-themed'
-              }`}
+              onClick={() => setShowAllTags(!showAllTags)}
+              className="rounded-full border border-themed px-3 py-1.5 text-xs font-medium text-themed-muted transition-colors hover:border-[var(--accent)] hover:text-themed sm:px-4 sm:text-sm"
             >
-              {tag}
+              {showAllTags ? 'Show less' : `+${hiddenCount} more`}
             </button>
-          ))}
+          )}
         </div>
       )}
     </div>

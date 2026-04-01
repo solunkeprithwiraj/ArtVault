@@ -17,7 +17,7 @@ function getYouTubeThumbnail(url: string): string | null {
   return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
 }
 
-function extractDominantColor(img: HTMLImageElement): string | null {
+export function extractDominantColor(img: HTMLImageElement): string | null {
   try {
     const canvas = document.createElement('canvas');
     canvas.width = 10;
