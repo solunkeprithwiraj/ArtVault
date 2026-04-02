@@ -123,6 +123,8 @@ export const api = {
   scrape: (url: string) =>
     request<{
       pageTitle: string;
+      pageDescription: string;
+      favicon: string | null;
       media: Array<{ type: 'IMAGE' | 'IFRAME'; url: string; thumbnail?: string; title?: string }>;
     }>('/scrape', { method: 'POST', body: JSON.stringify({ url }) }),
   proxyUrl: (url: string, opts?: { w?: number; h?: number; q?: number; format?: string }) => {

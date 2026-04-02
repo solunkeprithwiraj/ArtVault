@@ -36,6 +36,8 @@ export default function AddPage() {
   const [scraping, setScraping] = useState(false);
   const [scrapedMedia, setScrapedMedia] = useState<ScrapedMedia[]>([]);
   const [scrapedTitle, setScrapedTitle] = useState('');
+  const [scrapedDesc, setScrapedDesc] = useState('');
+  const [scrapedFavicon, setScrapedFavicon] = useState<string | null>(null);
   const [showScraper, setShowScraper] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | 'IMAGE' | 'IFRAME'>('ALL');
 
@@ -79,6 +81,8 @@ export default function AddPage() {
       const result = await api.scrape(scrapeUrl);
       setScrapedMedia(result.media);
       setScrapedTitle(result.pageTitle);
+      setScrapedDesc(result.pageDescription);
+      setScrapedFavicon(result.favicon);
       if (result.media.length === 0) {
         toast('No media found on this page', 'info');
       }
@@ -242,11 +246,23 @@ export default function AddPage() {
 
           {scrapedMedia.length > 0 && (
             <div className="mt-6">
+              {/* Page info */}
+              {(scrapedTitle || scrapedDesc) && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-themed bg-themed-input p-3">
+                  {scrapedFavicon && (
+                    <img src={scrapedFavicon} alt="" className="mt-0.5 h-5 w-5 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  )}
+                  <div className="min-w-0">
+                    {scrapedTitle && <p className="truncate text-sm font-medium text-themed">{scrapedTitle}</p>}
+                    {scrapedDesc && <p className="mt-0.5 line-clamp-2 text-xs text-themed-muted">{scrapedDesc}</p>}
+                  </div>
+                </div>
+              )}
+
               {/* Header with counts and filters */}
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-themed-secondary">
                   Found {scrapedMedia.length} media ({videoCount} videos, {imageCount} images)
-                  {scrapedTitle && <span className="text-themed-muted"> from &ldquo;{scrapedTitle}&rdquo;</span>}
                 </p>
                 <div className="flex items-center gap-3">
                   <button
