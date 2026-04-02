@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ThemeToggle } from './theme-provider';
-import { api, clearToken } from '@/lib/api';
+import { api, clearToken, getToken } from '@/lib/api';
 
 const moreLinks = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -17,7 +17,9 @@ export function Header() {
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
 
   useEffect(() => {
-    api.auth.me().then(setUser).catch(() => {});
+    if (getToken()) {
+      api.auth.me().then(setUser).catch(() => {});
+    }
   }, []);
 
   const handleLogout = () => {

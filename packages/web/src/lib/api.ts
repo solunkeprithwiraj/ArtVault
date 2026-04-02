@@ -1,6 +1,6 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-function getToken(): string | null {
+export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('artvault_token');
 }
@@ -32,7 +32,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (res.status === 401) {
       clearToken();
-      window.location.href = '/login';
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
       throw new ApiError(401, 'Unauthorized');
     }
     const body = await res.json().catch(() => ({}));
