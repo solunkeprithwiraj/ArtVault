@@ -6,6 +6,7 @@ import { ArtPiecesModule } from './art-pieces/art-pieces.module';
 import { CollectionsModule } from './collections/collections.module';
 import { NotesModule } from './notes/notes.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { ScrapeModule } from './scrape/scrape.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
 
@@ -23,6 +24,7 @@ import { AuthGuard } from './auth/auth.guard';
     CollectionsModule,
     NotesModule,
     ProxyModule,
+    ScrapeModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

@@ -120,6 +120,11 @@ export const api = {
     delete: (artPieceId: string, noteId: string) =>
       request<void>(`/art-pieces/${artPieceId}/notes/${noteId}`, { method: 'DELETE' }),
   },
+  scrape: (url: string) =>
+    request<{
+      pageTitle: string;
+      media: Array<{ type: 'IMAGE' | 'IFRAME'; url: string; thumbnail?: string; title?: string }>;
+    }>('/scrape', { method: 'POST', body: JSON.stringify({ url }) }),
   proxyUrl: (url: string, opts?: { w?: number; h?: number; q?: number; format?: string }) => {
     const params = new URLSearchParams({ url });
     if (opts?.w) params.set('w', String(opts.w));
