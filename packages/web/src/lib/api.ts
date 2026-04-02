@@ -45,12 +45,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   auth: {
-    login: (password: string) =>
+    login: (username: string, password: string) =>
       request<{ token: string }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       }),
     verify: () => request<{ valid: boolean }>('/auth/verify', { method: 'POST' }),
+    me: () => request<{ id: string; username: string; role: string; createdAt: string }>('/auth/me'),
   },
   artPieces: {
     list: (params?: Record<string, string>) => {

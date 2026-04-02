@@ -17,9 +17,6 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // If no password hash is configured, skip auth entirely
-    if (!process.env.ADMIN_PASSWORD_HASH) return true;
-
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),

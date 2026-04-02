@@ -7,10 +7,25 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+enum Role {
+  SUPERADMIN
+}
+
 enum MediaType {
   IMAGE
   VIDEO
   IFRAME
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(SUPERADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
 }
 
 model ArtPiece {

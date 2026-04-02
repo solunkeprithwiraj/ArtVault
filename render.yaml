@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: packages/api
     buildCommand: cd ../.. && pnpm install && cd packages/api && npx prisma generate && pnpm build
-    startCommand: cd ../.. && npx prisma migrate deploy --schema packages/api/prisma/schema.prisma && node packages/api/dist/main.js
+    startCommand: cd ../.. && npx prisma migrate deploy --schema packages/api/prisma/schema.prisma && node packages/api/dist/seed-admin.js && node packages/api/dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,3 +18,7 @@ services:
         generateValue: true
       - key: CORS_ORIGIN
         sync: false # Set to your Vercel URL
+      - key: ADMIN_USERNAME
+        sync: false # Set your admin username
+      - key: ADMIN_PASSWORD
+        sync: false # Set your admin password

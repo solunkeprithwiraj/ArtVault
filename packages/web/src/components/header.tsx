@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ThemeToggle } from './theme-provider';
+import { api, clearToken } from '@/lib/api';
 
 const moreLinks = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -12,6 +14,17 @@ const moreLinks = [
 ];
 
 export function Header() {
+  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+
+  useEffect(() => {
+    api.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const handleLogout = () => {
+    clearToken();
+    window.location.href = '/login';
+  };
+
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-themed bg-themed-card" style={{ backdropFilter: 'blur(12px)' }} role="banner">
@@ -66,7 +79,51 @@ export function Header() {
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             </nav>
+
             <ThemeToggle />
+
+            {user && (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-themed-secondary outline-none transition-colors hover:text-themed">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                    {user.username[0].toUpperCase()}
+                  </span>
+                  <span className="hidden sm:inline">{user.username}</span>
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="z-50 mt-2 w-44 rounded-lg border py-1 shadow-xl animate-fade-in"
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderColor: 'var(--border-color)',
+                    }}
+                    sideOffset={8}
+                    align="end"
+                  >
+                    <div className="px-4 py-2 text-xs text-themed-muted">
+                      {user.role}
+                    </div>
+                    <DropdownMenu.Separator className="my-1 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
+                    <DropdownMenu.Item
+                      className="block w-full cursor-pointer px-4 py-2 text-left text-sm outline-none transition-colors"
+                      style={{ color: 'var(--text-secondary)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-input)';
+                        e.currentTarget.style.color = '#ef4444';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }}
+                      onSelect={handleLogout}
+                    >
+                      Sign out
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            )}
           </div>
         </div>
       </header>

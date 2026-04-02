@@ -1,31 +1,52 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UnauthorizedException,
+  Req,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Public } from './public.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private jwt: JwtService) {}
+  constructor(
+    private jwt: JwtService,
+    private prisma: PrismaService,
+  ) {}
 
   @Public()
   @Post('login')
-  async login(@Body() body: { password: string }) {
-    const storedHash = process.env.ADMIN_PASSWORD_HASH;
+  async login(@Body() body: { username: string; password: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { username: body.username },
+    });
 
-    if (!storedHash) {
-      // If no password is configured, auth is disabled — open access
-      return { token: this.jwt.sign({ sub: 'admin' }) };
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const valid = await bcrypt.compare(body.password, storedHash);
-    if (!valid) throw new UnauthorizedException('Invalid password');
+    const valid = await bcrypt.compare(body.password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    return { token: this.jwt.sign({ sub: 'admin' }) };
+    return {
+      token: this.jwt.sign({ sub: user.id, username: user.username, role: user.role }),
+    };
   }
 
   @Post('verify')
   async verify() {
-    // If this endpoint is reached (past the guard), token is valid
     return { valid: true };
+  }
+
+  @Get('me')
+  async me(@Req() req: any) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.sub },
+      select: { id: true, username: true, role: true, createdAt: true },
+    });
+    if (!user) throw new UnauthorizedException();
+    return user;
   }
 }

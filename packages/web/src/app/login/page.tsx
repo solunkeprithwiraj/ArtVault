@@ -8,6 +8,7 @@ import { useToast } from '@/components/toast';
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,11 +16,11 @@ export default function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { token } = await api.auth.login(password);
+      const { token } = await api.auth.login(username, password);
       setToken(token);
       router.push('/');
     } catch {
-      toast('Invalid password', 'error');
+      toast('Invalid credentials', 'error');
       setSubmitting(false);
     }
   };
@@ -31,10 +32,20 @@ export default function LoginPage() {
           Art<span className="accent-text">Vault</span>
         </h1>
         <p className="mb-8 text-center text-sm text-themed-secondary">
-          Enter your password to continue
+          Sign in to continue
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            required
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            autoFocus
+            autoComplete="username"
+          />
           <input
             type="password"
             required
@@ -42,7 +53,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-            autoFocus
+            autoComplete="current-password"
           />
           <button
             type="submit"

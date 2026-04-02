@@ -4,6 +4,7 @@ config({ path: path.join(__dirname, '..', '.env') });
 
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 import pg from 'pg';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -11,6 +12,22 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // --- Superadmin User ---
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'admin123';
+
+  const existingUser = await prisma.user.findUnique({ where: { username } });
+  if (existingUser) {
+    console.log(`Superadmin "${username}" already exists, skipping.`);
+  } else {
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.user.create({
+      data: { username, passwordHash, role: 'SUPERADMIN' },
+    });
+    console.log(`Superadmin "${username}" created with password "${password}"`);
+    console.log('IMPORTANT: Change this password in production!');
+  }
+
   await prisma.note.deleteMany();
   await prisma.artPiece.deleteMany();
   await prisma.collection.deleteMany();
@@ -26,7 +43,6 @@ async function main() {
   const inspiration = await prisma.collection.create({ data: { name: 'Inspiration Board', description: 'Visual inspiration' } });
   console.log('Collections created');
 
-  // Using picsum.photos (reliable, no rate limits) + unsplash for seed images
   const starryNight = await prisma.artPiece.create({
     data: {
       title: 'Starry Night Vibes',
@@ -87,7 +103,6 @@ async function main() {
     },
   });
 
-  // Japanese Art
   await prisma.artPiece.create({
     data: {
       title: 'Ocean Wave',
@@ -112,7 +127,6 @@ async function main() {
     },
   });
 
-  // Modern Art
   await prisma.artPiece.create({
     data: {
       title: 'Abstract Geometry',
@@ -137,7 +151,6 @@ async function main() {
     },
   });
 
-  // Photography
   await prisma.artPiece.create({
     data: {
       title: 'Earth from Space',
@@ -174,7 +187,6 @@ async function main() {
     },
   });
 
-  // Music & Videos
   await prisma.artPiece.create({
     data: {
       title: 'Lofi Girl - beats to relax/study to',
@@ -211,7 +223,6 @@ async function main() {
     },
   });
 
-  // Inspiration
   await prisma.artPiece.create({
     data: {
       title: 'Minimalist Design',
@@ -248,7 +259,6 @@ async function main() {
     },
   });
 
-  // Loose pieces (no collection)
   await prisma.artPiece.create({
     data: {
       title: 'Water Garden',
@@ -271,7 +281,6 @@ async function main() {
   });
   console.log('Art pieces created');
 
-  // --- Notes ---
   await prisma.note.createMany({
     data: [
       { artPieceId: starryNight.id, content: 'The swirling patterns create incredible visual movement' },
@@ -282,6 +291,7 @@ async function main() {
   console.log('Notes created');
 
   const counts = {
+    users: await prisma.user.count(),
     collections: await prisma.collection.count(),
     artPieces: await prisma.artPiece.count(),
     notes: await prisma.note.count(),
@@ -290,6 +300,7 @@ async function main() {
   };
 
   console.log('\nSeed complete!');
+  console.log(`  ${counts.users} user(s)`);
   console.log(`  ${counts.collections} collections (with nested sub-collections)`);
   console.log(`  ${counts.artPieces} art pieces (images, embeds)`);
   console.log(`  ${counts.notes} notes`);
@@ -299,4 +310,4 @@ async function main() {
 
 main()
   .catch(console.error)
-  .finally(() => prisma.$disconnect());
+  .finally(() => pool.end());
