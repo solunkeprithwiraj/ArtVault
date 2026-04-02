@@ -49,26 +49,17 @@ function ProxiedImage({
   thumbnail,
   onColorExtract,
 }: Omit<MediaRendererProps, 'mediaType'>) {
-  // For thumbnails, start with proxy-optimized version (smaller, webp)
-  // For full view, use original URL first
-  const initialSrc = thumbnail
-    ? api.proxyUrl(sourceUrl, { w: 600, q: 75, format: 'webp' })
-    : sourceUrl;
-
-  const [src, setSrc] = useState(initialSrc);
-  const [retries, setRetries] = useState(0);
+  // Always start with original URL — most reliable
+  // Use proxy in srcSet as optimization hint (browser picks best)
+  const [src, setSrc] = useState(sourceUrl);
+  const [failed, setFailed] = useState(false);
 
   const handleError = () => {
-    if (retries === 0 && thumbnail) {
-      // Proxy failed, try original
-      setSrc(sourceUrl);
-      setRetries(1);
-    } else if (retries === 0) {
-      // Original failed, try proxy
-      setSrc(api.proxyUrl(sourceUrl));
-      setRetries(1);
+    if (!failed) {
+      setFailed(true);
+      // Original failed — try via proxy
+      setSrc(api.proxyUrl(sourceUrl, thumbnail ? { w: 600, q: 75, format: 'webp' } : undefined));
     }
-    // After 1 retry, give up silently
   };
 
   const handleLoad = useCallback(
@@ -80,12 +71,15 @@ function ProxiedImage({
     [onColorExtract],
   );
 
-  // Responsive srcSet for thumbnails via proxy
-  const srcSet = thumbnail
+  // Responsive srcSet via proxy — browser will use these if proxy is reachable
+  // Falls back to src (original URL) if proxy fails
+  const srcSet = thumbnail && !failed
     ? `${api.proxyUrl(sourceUrl, { w: 400, q: 70, format: 'webp' })} 400w, ${api.proxyUrl(sourceUrl, { w: 600, q: 75, format: 'webp' })} 600w, ${api.proxyUrl(sourceUrl, { w: 900, q: 80, format: 'webp' })} 900w`
     : undefined;
 
-  const sizes = thumbnail ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined;
+  const sizes = thumbnail && !failed
+    ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
+    : undefined;
 
   return (
     <img
