@@ -81,7 +81,7 @@ function ProxiedImage({
       alt={title}
       className={`w-full rounded-lg object-cover ${className}`}
       loading="lazy"
-      crossOrigin="anonymous"
+      crossOrigin={onColorExtract ? "anonymous" : undefined}
       onError={handleError}
       onLoad={handleLoad}
     />
@@ -139,7 +139,7 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
       className={`aspect-video w-full rounded-lg ${className}`}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
-      sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+      sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms allow-popups-to-escape-sandbox"
       loading="lazy"
     />
   );

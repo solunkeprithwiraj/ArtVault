@@ -12,8 +12,8 @@ const EMBED_PATTERNS: Array<{
   transform: (match: RegExpMatchArray) => { sourceUrl: string; title?: string };
 }> = [
   {
-    // YouTube: youtube.com/watch?v=ID or youtu.be/ID
-    pattern: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/watch?...&v=ID
+    pattern: /(?:youtube\.com\/watch\?(?:[^&]*&)*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
     transform: (m) => ({
       sourceUrl: `https://www.youtube.com/embed/${m[1]}`,
       title: `YouTube Video (${m[1]})`,

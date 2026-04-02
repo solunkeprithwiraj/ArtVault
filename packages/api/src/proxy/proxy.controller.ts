@@ -1,6 +1,7 @@
 import { Controller, Get, Query, Res, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import sharp from 'sharp';
+import { Public } from '../auth/public.decorator';
 
 const ALLOWED_CONTENT_TYPES = [
   'image/jpeg',
@@ -17,6 +18,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 @Controller('proxy')
 export class ProxyController {
+  @Public()
   @Get()
   async proxy(
     @Query('url') url: string,
