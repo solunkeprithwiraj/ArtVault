@@ -144,19 +144,18 @@ export class ArtPiecesService {
   }
 
   async allTags(user: ReqUser) {
-    const rows = await this.prisma.artPiece.findMany({
-      where: this.ownerFilter(user),
-      select: { tags: true },
-    });
-    const counts: Record<string, number> = {};
-    for (const row of rows) {
-      for (const tag of row.tags) {
-        counts[tag] = (counts[tag] || 0) + 1;
-      }
-    }
-    return Object.entries(counts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
+    const userFilter = user.role === 'SUPERADMIN'
+      ? Prisma.sql``
+      : Prisma.sql`WHERE "userId" = ${user.sub}`;
+
+    const result: Array<{ name: string; count: number }> = await this.prisma.$queryRaw`
+      SELECT tag AS name, COUNT(*)::int AS count
+      FROM art_pieces, UNNEST(tags) AS tag
+      ${userFilter}
+      GROUP BY tag
+      ORDER BY count DESC
+    `;
+    return result;
   }
 
   async reorder(ids: string[], user: ReqUser) {
@@ -223,36 +222,46 @@ export class ArtPiecesService {
       select: { id: true, title: true, sourceUrl: true, mediaType: true },
     });
 
-    const results = await Promise.allSettled(
-      pieces.map(async (p) => {
-        try {
-          const res = await fetch(p.sourceUrl, {
-            method: 'HEAD',
-            signal: AbortSignal.timeout(10000),
-            headers: { 'User-Agent': 'ArtVault/1.0' },
-          });
-          return { ...p, status: res.status, ok: res.ok };
-        } catch (err: any) {
-          return { ...p, status: 0, ok: false, error: err.message };
-        }
-      }),
-    );
+    // Check in batches of 10 to avoid connection exhaustion
+    const BATCH_SIZE = 10;
+    const allChecked: any[] = [];
 
-    const checked = results.map((r) => (r.status === 'fulfilled' ? r.value : null)).filter(Boolean);
-    const broken = checked.filter((c) => !c!.ok);
+    for (let i = 0; i < pieces.length; i += BATCH_SIZE) {
+      const batch = pieces.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (p) => {
+          try {
+            const res = await fetch(p.sourceUrl, {
+              method: 'HEAD',
+              signal: AbortSignal.timeout(8000),
+              headers: { 'User-Agent': 'ArtVault/1.0' },
+            });
+            return { ...p, status: res.status, ok: res.ok };
+          } catch (err: any) {
+            return { ...p, status: 0, ok: false, error: err.message };
+          }
+        }),
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled') allChecked.push(r.value);
+      }
+    }
+
+    const broken = allChecked.filter((c) => !c.ok);
 
     return {
       total: pieces.length,
-      checked: checked.length,
+      checked: allChecked.length,
       broken: broken.length,
       details: broken,
     };
   }
 
-  async timeline(user: ReqUser) {
+  async timeline(user: ReqUser, limit = 200) {
     const pieces = await this.prisma.artPiece.findMany({
       where: this.ownerFilter(user),
       orderBy: { createdAt: 'desc' },
+      take: limit,
       include: { collection: true },
     });
 
@@ -353,21 +362,20 @@ export class ArtPiecesService {
   }
 
   async discover(user: ReqUser, limit = 20) {
-    const ownership = this.ownerFilter(user);
-    const all = await this.prisma.artPiece.findMany({
-      where: ownership,
-      select: { id: true },
-    });
-    for (let i = all.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [all[i], all[j]] = [all[j], all[i]];
-    }
-    const ids = all.slice(0, limit).map((a) => a.id);
-    const pieces = await this.prisma.artPiece.findMany({
+    const userFilter = user.role === 'SUPERADMIN'
+      ? Prisma.sql``
+      : Prisma.sql`WHERE "userId" = ${user.sub}`;
+
+    const randomIds: Array<{ id: string }> = await this.prisma.$queryRaw`
+      SELECT id FROM art_pieces ${userFilter} ORDER BY RANDOM() LIMIT ${limit}
+    `;
+    if (!randomIds.length) return [];
+
+    const ids = randomIds.map((r) => r.id);
+    return this.prisma.artPiece.findMany({
       where: { id: { in: ids } },
       include: { collection: true },
     });
-    return ids.map((id) => pieces.find((p) => p.id === id)).filter(Boolean);
   }
 
   async togglePin(id: string, user: ReqUser) {

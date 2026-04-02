@@ -99,11 +99,19 @@ function GalleryContent() {
   // Infinite scroll
   const sentinelRef = useInfiniteScroll(loadMore, { enabled: hasMore, loading: loadingMore });
 
+  // Debounce filter changes — wait 150ms before fetching
   useEffect(() => {
-    loadPieces();
+    const timer = setTimeout(() => {
+      loadPieces();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [loadPieces]);
+
+  // Load tags and collections once
+  useEffect(() => {
     api.artPieces.tags().then(setTags).catch(() => {});
     api.collections.list().then(setCollections).catch(() => {});
-  }, [loadPieces]);
+  }, []);
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) =>

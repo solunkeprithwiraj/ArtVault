@@ -51,6 +51,11 @@ model ArtPiece {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  @@index([userId])
+  @@index([collectionId])
+  @@index([userId, createdAt])
+  @@index([userId, isFavorite])
+  @@index([userId, mediaType])
   @@map("art_pieces")
 }
 
@@ -69,6 +74,8 @@ model Collection {
   updatedAt   DateTime     @updatedAt
 
   @@unique([name, userId])
+  @@index([userId])
+  @@index([parentId])
   @@map("collections")
 }
 
@@ -82,5 +89,7 @@ model Note {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@index([artPieceId])
+  @@index([userId])
   @@map("notes")
 }
