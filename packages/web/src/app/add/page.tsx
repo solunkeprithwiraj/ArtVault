@@ -39,6 +39,12 @@ export default function AddPage() {
   const [showScraper, setShowScraper] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | 'IMAGE' | 'IFRAME'>('ALL');
 
+  // Bulk select state
+  const [selectedMedia, setSelectedMedia] = useState<Set<number>>(new Set());
+  const [bulkTags, setBulkTags] = useState('');
+  const [bulkCollectionId, setBulkCollectionId] = useState('');
+  const [bulkAdding, setBulkAdding] = useState(false);
+
   useEffect(() => {
     api.collections.list().then(setCollections).catch(() => {});
   }, []);
@@ -68,6 +74,7 @@ export default function AddPage() {
     if (!scrapeUrl) return;
     setScraping(true);
     setScrapedMedia([]);
+    setSelectedMedia(new Set());
     try {
       const result = await api.scrape(scrapeUrl);
       setScrapedMedia(result.media);
@@ -95,16 +102,74 @@ export default function AddPage() {
     toast('Media selected — fill in details and save', 'success');
   };
 
+  const toggleMediaSelect = (index: number) => {
+    setSelectedMedia((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    const indices = filteredMedia.map((_, i) => {
+      const actualIndex = scrapedMedia.indexOf(filteredMedia[i]);
+      return actualIndex;
+    });
+    setSelectedMedia((prev) => {
+      const allSelected = indices.every((i) => prev.has(i));
+      const next = new Set(prev);
+      if (allSelected) {
+        indices.forEach((i) => next.delete(i));
+      } else {
+        indices.forEach((i) => next.add(i));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkAdd = async () => {
+    if (selectedMedia.size === 0) return;
+    setBulkAdding(true);
+    const tags = bulkTags.split(',').map((t) => t.trim()).filter(Boolean);
+    let added = 0;
+    let failed = 0;
+
+    for (const index of selectedMedia) {
+      const media = scrapedMedia[index];
+      if (!media) continue;
+      try {
+        await api.artPieces.create({
+          title: media.title || scrapedTitle || 'Untitled',
+          mediaType: media.type,
+          sourceUrl: media.url,
+          thumbnailUrl: media.thumbnail || undefined,
+          tags,
+          collectionId: bulkCollectionId || undefined,
+        });
+        added++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setBulkAdding(false);
+    if (added > 0) {
+      toast(`Added ${added} item${added > 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`, 'success');
+      setSelectedMedia(new Set());
+      router.push('/');
+    } else {
+      toast('Failed to add items', 'error');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       await api.artPieces.create({
         ...form,
-        tags: form.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         collectionId: form.collectionId || undefined,
         thumbnailUrl: form.thumbnailUrl || undefined,
       });
@@ -153,7 +218,7 @@ export default function AddPage() {
         <div className="mx-auto mb-8 max-w-4xl rounded-xl border border-themed bg-themed-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-themed">Page Scraper</h2>
           <p className="mb-4 text-sm text-themed-secondary">
-            Paste a webpage URL to extract all videos and images from it.
+            Paste a webpage URL to extract all videos and images. Select multiple to bulk-add.
           </p>
 
           <div className="flex gap-3">
@@ -177,83 +242,164 @@ export default function AddPage() {
 
           {scrapedMedia.length > 0 && (
             <div className="mt-6">
-              <div className="mb-4 flex items-center justify-between">
+              {/* Header with counts and filters */}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-themed-secondary">
                   Found {scrapedMedia.length} media ({videoCount} videos, {imageCount} images)
                   {scrapedTitle && <span className="text-themed-muted"> from &ldquo;{scrapedTitle}&rdquo;</span>}
                 </p>
-                <div className="flex gap-1 rounded-lg border border-themed bg-themed-input p-0.5">
-                  {(['ALL', 'IFRAME', 'IMAGE'] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setFilterType(t)}
-                      className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                        filterType === t ? 'bg-themed-card text-themed shadow-sm' : 'text-themed-muted hover:text-themed'
-                      }`}
-                    >
-                      {t === 'ALL' ? 'All' : t === 'IFRAME' ? 'Videos' : 'Images'}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={selectAllFiltered}
+                    className="text-xs font-medium accent-text hover:underline"
+                  >
+                    {filteredMedia.every((_, i) => selectedMedia.has(scrapedMedia.indexOf(filteredMedia[i])))
+                      ? 'Deselect All'
+                      : 'Select All'}
+                  </button>
+                  <div className="flex gap-1 rounded-lg border border-themed bg-themed-input p-0.5">
+                    {(['ALL', 'IFRAME', 'IMAGE'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setFilterType(t)}
+                        className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                          filterType === t ? 'bg-themed-card text-themed shadow-sm' : 'text-themed-muted hover:text-themed'
+                        }`}
+                      >
+                        {t === 'ALL' ? 'All' : t === 'IFRAME' ? 'Videos' : 'Images'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              {/* Media grid */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {filteredMedia.map((media, i) => (
-                  <button
-                    key={`${media.url}-${i}`}
-                    type="button"
-                    onClick={() => handleSelectMedia(media)}
-                    className="group relative overflow-hidden rounded-lg border border-themed bg-themed-input transition-all hover:border-[var(--accent)] hover:shadow-lg"
-                  >
-                    {media.thumbnail ? (
-                      <img
-                        src={media.thumbnail}
-                        alt={media.title || ''}
-                        className="aspect-video w-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '';
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="flex aspect-video items-center justify-center bg-themed-input">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-themed-muted">
-                          {media.type === 'IFRAME' ? (
-                            <><rect x="2" y="3" width="20" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></>
-                          ) : (
-                            <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></>
-                          )}
-                        </svg>
-                      </div>
-                    )}
+                {filteredMedia.map((media) => {
+                  const actualIndex = scrapedMedia.indexOf(media);
+                  const isSelected = selectedMedia.has(actualIndex);
+                  return (
+                    <button
+                      key={`${media.url}-${actualIndex}`}
+                      type="button"
+                      onClick={() => toggleMediaSelect(actualIndex)}
+                      className={`group relative overflow-hidden rounded-lg border-2 transition-all ${
+                        isSelected
+                          ? 'border-[var(--accent)] shadow-lg ring-2 ring-[var(--accent)]/30'
+                          : 'border-themed hover:border-[var(--accent)]/50'
+                      }`}
+                    >
+                      {media.thumbnail ? (
+                        <img
+                          src={media.thumbnail}
+                          alt={media.title || ''}
+                          className="aspect-video w-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="flex aspect-video items-center justify-center bg-themed-input">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-themed-muted">
+                            {media.type === 'IFRAME' ? (
+                              <><rect x="2" y="3" width="20" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></>
+                            ) : (
+                              <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></>
+                            )}
+                          </svg>
+                        </div>
+                      )}
 
-                    {/* Type badge */}
-                    <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${
-                      media.type === 'IFRAME' ? 'bg-red-500/80' : 'bg-blue-500/80'
-                    }`}>
-                      {media.type === 'IFRAME' ? 'Video' : 'Image'}
-                    </span>
-
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
-                      <span className="scale-0 rounded-full bg-white/90 p-2 transition-transform group-hover:scale-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
-                          <path d="M12 5v14M5 12h14" />
-                        </svg>
+                      {/* Type badge */}
+                      <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${
+                        media.type === 'IFRAME' ? 'bg-red-500/80' : 'bg-blue-500/80'
+                      }`}>
+                        {media.type === 'IFRAME' ? 'Video' : 'Image'}
                       </span>
-                    </div>
 
-                    {/* Title */}
-                    {media.title && (
-                      <p className="truncate px-2 py-1.5 text-left text-[11px] text-themed-secondary">
-                        {media.title}
-                      </p>
-                    )}
-                  </button>
-                ))}
+                      {/* Selection checkbox */}
+                      <div className={`absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
+                        isSelected
+                          ? 'border-[var(--accent)] bg-[var(--accent)]'
+                          : 'border-white/70 bg-black/30 group-hover:border-white'
+                      }`}>
+                        {isSelected && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      {media.title && (
+                        <p className="truncate px-2 py-1.5 text-left text-[11px] text-themed-secondary">
+                          {media.title}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Bulk add bar */}
+              {selectedMedia.size > 0 && (
+                <div className="mt-6 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                      {selectedMedia.size}
+                    </span>
+                    <span className="text-sm font-medium text-themed">
+                      item{selectedMedia.size > 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-themed-secondary">Collection</label>
+                      <select
+                        className="w-full rounded-lg border border-themed bg-themed-input px-3 py-2 text-sm text-themed focus:border-[var(--accent)] focus:outline-none"
+                        value={bulkCollectionId}
+                        onChange={(e) => setBulkCollectionId(e.target.value)}
+                      >
+                        <option value="">No collection</option>
+                        {collections.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-themed-secondary">Tags (comma-separated)</label>
+                      <input
+                        type="text"
+                        className="w-full rounded-lg border border-themed bg-themed-input px-3 py-2 text-sm text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none"
+                        value={bulkTags}
+                        onChange={(e) => setBulkTags(e.target.value)}
+                        placeholder="art, scraped"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        type="button"
+                        onClick={handleBulkAdd}
+                        disabled={bulkAdding}
+                        className="flex-1 rounded-lg accent-bg px-4 py-2 text-sm font-semibold text-white accent-bg-hover disabled:opacity-50"
+                      >
+                        {bulkAdding ? 'Adding...' : `Add ${selectedMedia.size} Item${selectedMedia.size > 1 ? 's' : ''}`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMedia(new Set())}
+                        className="rounded-lg border border-themed px-3 py-2 text-sm text-themed-secondary hover:text-themed"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
