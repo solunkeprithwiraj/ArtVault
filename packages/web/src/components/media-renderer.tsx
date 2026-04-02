@@ -8,7 +8,7 @@ interface MediaRendererProps {
   sourceUrl: string;
   title: string;
   className?: string;
-  thumbnail?: boolean; // Use optimized smaller image for card views
+  thumbnail?: boolean;
   onColorExtract?: (color: string) => void;
 }
 
@@ -49,22 +49,27 @@ function ProxiedImage({
   thumbnail,
   onColorExtract,
 }: Omit<MediaRendererProps, 'mediaType'>) {
-  const [src, setSrc] = useState(sourceUrl);
-  const [failed, setFailed] = useState(false);
-  const [triedOptimized, setTriedOptimized] = useState(false);
+  // For thumbnails, start with proxy-optimized version (smaller, webp)
+  // For full view, use original URL first
+  const initialSrc = thumbnail
+    ? api.proxyUrl(sourceUrl, { w: 600, q: 75, format: 'webp' })
+    : sourceUrl;
+
+  const [src, setSrc] = useState(initialSrc);
+  const [retries, setRetries] = useState(0);
 
   const handleError = () => {
-    if (!failed) {
-      setFailed(true);
-      // On error, try proxy (with optimization if thumbnail mode)
-      setSrc(api.proxyUrl(sourceUrl, thumbnail ? { w: 600, q: 75, format: 'webp' } : undefined));
+    if (retries === 0 && thumbnail) {
+      // Proxy failed, try original
+      setSrc(sourceUrl);
+      setRetries(1);
+    } else if (retries === 0) {
+      // Original failed, try proxy
+      setSrc(api.proxyUrl(sourceUrl));
+      setRetries(1);
     }
+    // After 1 retry, give up silently
   };
-
-  // For thumbnail mode, use srcSet with optimized proxy versions
-  const srcSet = thumbnail && !failed
-    ? `${sourceUrl} 1x, ${sourceUrl} 2x`
-    : undefined;
 
   const handleLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -75,13 +80,23 @@ function ProxiedImage({
     [onColorExtract],
   );
 
+  // Responsive srcSet for thumbnails via proxy
+  const srcSet = thumbnail
+    ? `${api.proxyUrl(sourceUrl, { w: 400, q: 70, format: 'webp' })} 400w, ${api.proxyUrl(sourceUrl, { w: 600, q: 75, format: 'webp' })} 600w, ${api.proxyUrl(sourceUrl, { w: 900, q: 80, format: 'webp' })} 900w`
+    : undefined;
+
+  const sizes = thumbnail ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw' : undefined;
+
   return (
     <img
       src={src}
+      srcSet={srcSet}
+      sizes={sizes}
       alt={title}
       className={`w-full rounded-lg object-cover ${className}`}
       loading="lazy"
-      crossOrigin={onColorExtract ? "anonymous" : undefined}
+      decoding="async"
+      crossOrigin={onColorExtract ? 'anonymous' : undefined}
       onError={handleError}
       onLoad={handleLoad}
     />
@@ -117,7 +132,7 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
         className={`relative flex aspect-video w-full items-center justify-center rounded-lg bg-neutral-800 ${className}`}
       >
         {thumbnail ? (
-          <img src={thumbnail} alt={title} className="h-full w-full rounded-lg object-cover" loading="lazy" />
+          <img src={thumbnail} alt={title} className="h-full w-full rounded-lg object-cover" loading="lazy" decoding="async" />
         ) : (
           <span className="text-sm text-themed-muted">{title}</span>
         )}

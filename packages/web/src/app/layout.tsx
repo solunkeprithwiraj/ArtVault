@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Header } from '@/components/header';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'ArtVault',
@@ -20,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body>
         <Providers>
           <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:accent-bg focus:px-4 focus:py-2 focus:text-white">

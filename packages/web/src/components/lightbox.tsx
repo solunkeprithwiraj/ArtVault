@@ -8,7 +8,7 @@ import { ZoomableImage } from './zoomable-image';
 import { Notes } from './notes';
 import { useTouch } from '@/lib/use-touch';
 import { ShareButton } from './share-button';
-import { api } from '@/lib/api';
+import { useRelated } from '@/lib/hooks';
 
 interface LightboxProps {
   piece: {
@@ -43,16 +43,8 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [piece, handleKeyDown]);
 
-  const [related, setRelated] = useState<any[]>([]);
+  const { data: related = [] } = useRelated(piece?.id || '');
   const [ambientColor, setAmbientColor] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (piece?.id) {
-      api.artPieces.related(piece.id).then(setRelated).catch(() => setRelated([]));
-    } else {
-      setRelated([]);
-    }
-  }, [piece?.id]);
 
   // Extract dominant color for ambient glow
   useEffect(() => {

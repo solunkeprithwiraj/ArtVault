@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/toast';
+import { useStats, useDailyHighlight, useBatchDelete, useInvalidate } from '@/lib/hooks';
 
 interface Stats {
   total: number;
@@ -35,25 +36,18 @@ interface BrokenLink {
 
 export default function DashboardPage() {
   const { toast } = useToast();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [highlight, setHighlight] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading: statsLoading } = useStats() as { data: Stats | undefined; isLoading: boolean };
+  const { data: highlight, isLoading: highlightLoading } = useDailyHighlight();
+  const batchDelete = useBatchDelete();
+  const invalidate = useInvalidate();
+
+  const loading = statsLoading || highlightLoading;
 
   // Broken links state
   const [scanning, setScanning] = useState(false);
   const [brokenLinks, setBrokenLinks] = useState<BrokenLink[]>([]);
   const [scanDone, setScanDone] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    Promise.all([
-      api.artPieces.stats(),
-      api.artPieces.dailyHighlight(),
-    ])
-      .then(([s, h]) => { setStats(s); setHighlight(h); })
-      .catch((err) => toast(err.message || 'Failed to load stats', 'error'))
-      .finally(() => setLoading(false));
-  }, [toast]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -81,12 +75,9 @@ export default function DashboardPage() {
     setDeleting(true);
     try {
       const ids = brokenLinks.map((b) => b.id);
-      await api.artPieces.batchDelete(ids);
+      await batchDelete.mutateAsync(ids);
       toast(`${ids.length} broken piece${ids.length > 1 ? 's' : ''} deleted`, 'success');
       setBrokenLinks([]);
-      // Refresh stats
-      const s = await api.artPieces.stats();
-      setStats(s);
     } catch (err: any) {
       toast(err.message || 'Delete failed', 'error');
     } finally {
@@ -99,8 +90,7 @@ export default function DashboardPage() {
       await api.artPieces.delete(id);
       setBrokenLinks((prev) => prev.filter((b) => b.id !== id));
       toast('Piece deleted', 'success');
-      const s = await api.artPieces.stats();
-      setStats(s);
+      invalidate('art-pieces', 'stats', 'tags');
     } catch (err: any) {
       toast(err.message || 'Delete failed', 'error');
     }

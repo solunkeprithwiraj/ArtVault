@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ThemeToggle } from './theme-provider';
-import { api, clearToken, getToken } from '@/lib/api';
+import { clearToken } from '@/lib/api';
+import { useAuth } from '@/lib/hooks';
 
 const moreLinks = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -16,13 +16,7 @@ const moreLinks = [
 
 export function Header() {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
-
-  useEffect(() => {
-    if (getToken()) {
-      api.auth.me().then(setUser).catch(() => {});
-    }
-  }, []);
+  const { data: user } = useAuth();
 
   const handleLogout = () => {
     clearToken();
