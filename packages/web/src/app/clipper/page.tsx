@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const ARTVAULT_URL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+function useBookmarkletCode() {
+  const [code, setCode] = useState('');
 
-// The bookmarklet code — enhanced with deep video extraction
-const bookmarkletCode = `
+  useEffect(() => {
+    const av = window.location.origin;
+    setCode(buildBookmarklet(av));
+  }, []);
+
+  return code;
+}
+
+function buildBookmarklet(artvaultUrl: string) {
+  return `
 javascript:void(function(){
-  var d=document,w=window,av='${ARTVAULT_URL}';
+  var d=document,w=window,av='${artvaultUrl}';
 
   /* Remove existing overlay if re-clicked */
   var old=d.getElementById('artvault-clipper');
@@ -209,11 +218,14 @@ javascript:void(function(){
   d.body.appendChild(overlay);
 })();
 `.replace(/\n/g, '').replace(/\s{2,}/g, ' ').trim();
+}
 
 export default function ClipperPage() {
+  const bookmarkletCode = useBookmarkletCode();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    if (!bookmarkletCode) return;
     navigator.clipboard.writeText(bookmarkletCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

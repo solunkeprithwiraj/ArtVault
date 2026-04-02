@@ -53,10 +53,36 @@ function MediaTypeIcons({ count }: { count: number }) {
   );
 }
 
+function CollectionSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-themed bg-themed-card">
+          <div className="flex flex-col sm:flex-row">
+            <div className="h-40 w-full shrink-0 bg-themed-input sm:h-auto sm:w-48" />
+            <div className="flex flex-1 flex-col justify-between p-5">
+              <div>
+                <div className="h-5 w-40 rounded bg-themed-input" />
+                <div className="mt-3 h-3 w-64 rounded bg-themed-input" />
+                <div className="mt-1.5 h-3 w-48 rounded bg-themed-input" />
+              </div>
+              <div className="mt-4 flex items-center gap-4">
+                <div className="h-4 w-20 rounded bg-themed-input" />
+                <div className="h-4 w-16 rounded bg-themed-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function CollectionsPage() {
   const { toast } = useToast();
   const [tree, setTree] = useState<any[]>([]);
   const [allCollections, setAllCollections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -66,8 +92,13 @@ export default function CollectionsPage() {
   const [editDescription, setEditDescription] = useState('');
 
   const load = () => {
-    api.collections.tree().then(setTree).catch((err) => toast(err.message || 'Failed to load', 'error'));
-    api.collections.list().then(setAllCollections).catch(() => {});
+    setLoading(true);
+    Promise.all([
+      api.collections.tree().then(setTree),
+      api.collections.list().then(setAllCollections),
+    ])
+      .catch((err) => toast(err.message || 'Failed to load', 'error'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
@@ -252,7 +283,9 @@ export default function CollectionsPage() {
         </form>
       )}
 
-      {tree.length === 0 ? (
+      {loading ? (
+        <CollectionSkeleton />
+      ) : tree.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-20">
           <div className="mb-6 rounded-full accent-soft-bg p-6">

@@ -23,18 +23,22 @@ function ClipContent() {
   const urlParam = searchParams.get('url') || '';
   const titleParam = searchParams.get('title') || '';
   const pageUrl = searchParams.get('pageUrl') || '';
+  const typeParam = searchParams.get('type') as 'IMAGE' | 'VIDEO' | 'IFRAME' | null;
 
   const [collections, setCollections] = useState<any[]>([]);
   const [duplicate, setDuplicate] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-detect media type
+  // Auto-detect media type — prefer explicit type param from bookmarklet
   const detected = detectMedia(urlParam);
+  const mediaType = typeParam || detected?.mediaType || 'IMAGE';
+  const sourceUrl = detected?.sourceUrl || urlParam;
+
   const [form, setForm] = useState({
-    title: titleParam || detected?.title || '',
-    description: pageUrl ? `Clipped from ${pageUrl}` : '',
-    mediaType: (detected?.mediaType || 'IMAGE') as 'IMAGE' | 'VIDEO' | 'IFRAME',
-    sourceUrl: detected?.sourceUrl || urlParam,
+    title: decodeURIComponent(titleParam) || detected?.title || '',
+    description: pageUrl ? `Clipped from ${decodeURIComponent(pageUrl)}` : '',
+    mediaType: mediaType as 'IMAGE' | 'VIDEO' | 'IFRAME',
+    sourceUrl,
     thumbnailUrl: '',
     tags: '',
     collectionId: '',

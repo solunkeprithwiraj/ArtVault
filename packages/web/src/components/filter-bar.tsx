@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ThemedSelect } from './themed-select';
 
 interface TagWithCount {
   name: string;
@@ -38,9 +39,6 @@ export function FilterBar({
 }: FilterBarProps) {
   const [showAllTags, setShowAllTags] = useState(false);
 
-  const selectClass =
-    'rounded-lg border border-themed bg-themed-input px-3 py-2 text-sm text-themed focus:border-[var(--accent)] focus:outline-none';
-
   const visibleTags = showAllTags ? tags : tags.slice(0, TOP_TAGS_COUNT);
   const hiddenCount = tags.length - TOP_TAGS_COUNT;
 
@@ -48,20 +46,30 @@ export function FilterBar({
     <div className="mb-6 space-y-4">
       {/* Top row: filters + layout toggle */}
       <div className="flex flex-wrap items-center gap-3">
-        <select value={mediaType} onChange={(e) => onMediaTypeChange(e.target.value)} className={selectClass}>
-          <option value="">All Types</option>
-          <option value="IMAGE">Images</option>
-          <option value="VIDEO">Videos</option>
-          <option value="IFRAME">Embeds</option>
-        </select>
+        <ThemedSelect
+          value={mediaType}
+          onValueChange={onMediaTypeChange}
+          placeholder="All Types"
+          options={[
+            { value: '', label: 'All Types' },
+            { value: 'IMAGE', label: 'Images' },
+            { value: 'VIDEO', label: 'Videos' },
+            { value: 'IFRAME', label: 'Embeds' },
+          ]}
+        />
 
-        <select value={sort} onChange={(e) => onSortChange(e.target.value)} className={selectClass}>
-          <option value="custom">Custom Order</option>
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="title">Title A-Z</option>
-          <option value="title_desc">Title Z-A</option>
-        </select>
+        <ThemedSelect
+          value={sort}
+          onValueChange={onSortChange}
+          placeholder="Sort"
+          options={[
+            { value: 'custom', label: 'Custom Order' },
+            { value: 'newest', label: 'Newest First' },
+            { value: 'oldest', label: 'Oldest First' },
+            { value: 'title', label: 'Title A-Z' },
+            { value: 'title_desc', label: 'Title Z-A' },
+          ]}
+        />
 
         <button
           onClick={onToggleFavorites}

@@ -238,6 +238,17 @@ body {
 .accent-text { color: var(--accent); }
 .accent-soft-bg { background-color: var(--accent-soft); }
 
+/* Native select/option theme fix */
+select {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
 /* Mobile nav improvements */
 @media (max-width: 639px) {
   .mobile-nav {

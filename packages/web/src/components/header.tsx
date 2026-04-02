@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ThemeToggle } from './theme-provider';
 
-export function Header() {
-  const [showMore, setShowMore] = useState(false);
+const moreLinks = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/timeline', label: 'Timeline' },
+  { href: '/compare', label: 'Compare' },
+  { href: '/moodboard', label: 'Mood Board' },
+  { href: '/clipper', label: 'Web Clipper' },
+];
 
+export function Header() {
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-themed bg-themed-card" style={{ backdropFilter: 'blur(12px)' }} role="banner">
@@ -19,41 +25,46 @@ export function Header() {
               <a href="/collections" className="transition-colors hover:text-themed">Collections</a>
               <a href="/add" className="transition-colors hover:text-themed">+ Add</a>
 
-              {/* More dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowMore(!showMore)}
-                  className="transition-colors hover:text-themed"
-                >
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger className="flex items-center gap-1 transition-colors hover:text-themed outline-none">
                   More
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1 inline">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="m6 9 6 6 6-6" />
                   </svg>
-                </button>
-                {showMore && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-                    <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-lg border border-themed bg-themed-card py-1 shadow-xl">
-                      {[
-                        { href: '/dashboard', label: 'Dashboard' },
-                        { href: '/timeline', label: 'Timeline' },
-                        { href: '/compare', label: 'Compare' },
-                        { href: '/moodboard', label: 'Mood Board' },
-                        { href: '/clipper', label: 'Web Clipper' },
-                      ].map(({ href, label }) => (
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="z-50 mt-2 w-44 rounded-lg border py-1 shadow-xl animate-fade-in"
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderColor: 'var(--border-color)',
+                    }}
+                    sideOffset={8}
+                    align="end"
+                  >
+                    {moreLinks.map(({ href, label }) => (
+                      <DropdownMenu.Item key={href} asChild>
                         <a
-                          key={href}
                           href={href}
-                          className="block px-4 py-2 text-sm text-themed-secondary hover:bg-themed-input hover:text-themed"
-                          onClick={() => setShowMore(false)}
+                          className="block px-4 py-2 text-sm outline-none transition-colors"
+                          style={{ color: 'var(--text-secondary)' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-input)';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                          }}
                         >
                           {label}
                         </a>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </nav>
             <ThemeToggle />
           </div>

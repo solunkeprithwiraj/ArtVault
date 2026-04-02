@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: artvault-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: packages/api
+    buildCommand: cd ../.. && pnpm install && cd packages/api && npx prisma generate && pnpm build
+    startCommand: cd ../.. && npx prisma migrate deploy --schema packages/api/prisma/schema.prisma && node packages/api/dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: DATABASE_URL
+        sync: false # Set manually — Neon connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false # Set to your Vercel URL

@@ -1,12 +1,6 @@
-const CACHE_NAME = 'artvault-v1';
-const STATIC_ASSETS = ['/', '/collections', '/add', '/dashboard'];
+const CACHE_NAME = 'artvault-v2';
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
-  self.skipWaiting();
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -21,11 +15,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-http(s) schemes (chrome-extension, etc.)
+  // Skip non-http(s) schemes
   if (!url.protocol.startsWith('http')) return;
 
-  // Cache images from external sources
-  if (request.destination === 'image') {
+  // Only cache external images (the valuable part for offline viewing)
+  if (request.destination === 'image' && !url.pathname.startsWith('/_next')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request);
@@ -42,30 +36,5 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for API calls
-  if (url.pathname.startsWith('/api')) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Cache-first for static assets, network-first for pages
-  if (request.destination === 'script' || request.destination === 'style' || request.destination === 'font') {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        const response = await fetch(request);
-        if (response.ok) cache.put(request, response.clone());
-        return response;
-      })
-    );
-    return;
-  }
-
-  // Network-first for navigation
-  event.respondWith(
-    fetch(request).catch(() => caches.match(request).then((r) => r || caches.match('/')))
-  );
+  // Everything else — always network (no stale pages/scripts)
 });
