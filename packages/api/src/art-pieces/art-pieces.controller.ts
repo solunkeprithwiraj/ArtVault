@@ -8,6 +8,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
 } from '@nestjs/common';
 import { MediaType } from '../generated/prisma/client';
 import { ArtPiecesService } from './art-pieces.service';
@@ -19,6 +20,7 @@ export class ArtPiecesController {
 
   @Get()
   findAll(
+    @Req() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('tags') tags?: string,
@@ -29,111 +31,114 @@ export class ArtPiecesController {
     @Query('sort') sort?: string,
     @Query('fuzzy') fuzzy?: string,
   ) {
-    return this.service.findAll({
-      page: page ? +page : undefined,
-      limit: limit ? +limit : undefined,
-      tags: tags ? tags.split(',') : undefined,
-      collectionId,
-      search,
-      mediaType: mediaType as MediaType | undefined,
-      favorite: favorite === 'true' ? true : favorite === 'false' ? false : undefined,
-      sort,
-      fuzzy: fuzzy === 'true',
-    });
+    return this.service.findAll(
+      {
+        page: page ? +page : undefined,
+        limit: limit ? +limit : undefined,
+        tags: tags ? tags.split(',') : undefined,
+        collectionId,
+        search,
+        mediaType: mediaType as MediaType | undefined,
+        favorite: favorite === 'true' ? true : favorite === 'false' ? false : undefined,
+        sort,
+        fuzzy: fuzzy === 'true',
+      },
+      req.user,
+    );
   }
 
   @Get('tags')
-  allTags() {
-    return this.service.allTags();
+  allTags(@Req() req: any) {
+    return this.service.allTags(req.user);
   }
 
   @Get('stats')
-  stats() {
-    return this.service.stats();
+  stats(@Req() req: any) {
+    return this.service.stats(req.user);
   }
 
   @Get('check-duplicate')
-  checkDuplicate(@Query('url') url: string) {
-    return this.service.checkDuplicate(url);
+  checkDuplicate(@Req() req: any, @Query('url') url: string) {
+    return this.service.checkDuplicate(url, req.user);
   }
 
   @Get('check-links')
-  checkLinks() {
-    return this.service.checkLinks();
+  checkLinks(@Req() req: any) {
+    return this.service.checkLinks(req.user);
   }
 
   @Get('random')
-  random() {
-    return this.service.random();
+  random(@Req() req: any) {
+    return this.service.random(req.user);
   }
 
   @Get('daily-highlight')
-  dailyHighlight() {
-    return this.service.dailyHighlight();
+  dailyHighlight(@Req() req: any) {
+    return this.service.dailyHighlight(req.user);
   }
 
   @Get('discover')
-  discover(@Query('limit') limit?: string) {
-    return this.service.discover(limit ? +limit : undefined);
+  discover(@Req() req: any, @Query('limit') limit?: string) {
+    return this.service.discover(req.user, limit ? +limit : undefined);
   }
 
   @Get('timeline')
-  timeline() {
-    return this.service.timeline();
+  timeline(@Req() req: any) {
+    return this.service.timeline(req.user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Req() req: any, @Param('id') id: string) {
+    return this.service.findOne(id, req.user);
   }
 
   @Post()
-  create(@Body() dto: CreateArtPieceDto) {
-    return this.service.create(dto);
+  create(@Req() req: any, @Body() dto: CreateArtPieceDto) {
+    return this.service.create(dto, req.user.sub);
   }
 
   @Post('reorder')
-  reorder(@Body() body: { ids: string[] }) {
-    return this.service.reorder(body.ids);
+  reorder(@Req() req: any, @Body() body: { ids: string[] }) {
+    return this.service.reorder(body.ids, req.user);
   }
 
   @Post('batch/delete')
-  batchDelete(@Body() body: { ids: string[] }) {
-    return this.service.batchDelete(body.ids);
+  batchDelete(@Req() req: any, @Body() body: { ids: string[] }) {
+    return this.service.batchDelete(body.ids, req.user);
   }
 
   @Post('batch/move')
-  batchMove(@Body() body: { ids: string[]; collectionId: string | null }) {
-    return this.service.batchMove(body.ids, body.collectionId);
+  batchMove(@Req() req: any, @Body() body: { ids: string[]; collectionId: string | null }) {
+    return this.service.batchMove(body.ids, body.collectionId, req.user);
   }
 
   @Post('batch/tag')
-  batchTag(@Body() body: { ids: string[]; tags: string[]; mode: 'add' | 'set' }) {
-    return this.service.batchTag(body.ids, body.tags, body.mode);
+  batchTag(@Req() req: any, @Body() body: { ids: string[]; tags: string[]; mode: 'add' | 'set' }) {
+    return this.service.batchTag(body.ids, body.tags, body.mode, req.user);
   }
 
   @Get(':id/related')
-  related(@Param('id') id: string, @Query('limit') limit?: string) {
-    return this.service.related(id, limit ? +limit : undefined);
+  related(@Req() req: any, @Param('id') id: string, @Query('limit') limit?: string) {
+    return this.service.related(id, req.user, limit ? +limit : undefined);
   }
 
   @Patch(':id/pin')
-  togglePin(@Param('id') id: string) {
-    return this.service.togglePin(id);
+  togglePin(@Req() req: any, @Param('id') id: string) {
+    return this.service.togglePin(id, req.user);
   }
 
   @Patch(':id/favorite')
-  toggleFavorite(@Param('id') id: string) {
-    return this.service.toggleFavorite(id);
+  toggleFavorite(@Req() req: any, @Param('id') id: string) {
+    return this.service.toggleFavorite(id, req.user);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateArtPieceDto) {
-    return this.service.update(id, dto);
+  update(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateArtPieceDto) {
+    return this.service.update(id, dto, req.user);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  delete(@Req() req: any, @Param('id') id: string) {
+    return this.service.delete(id, req.user);
   }
 }

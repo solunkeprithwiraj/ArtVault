@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Req,
 } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto, UpdateCollectionDto } from './collections.dto';
@@ -15,32 +16,32 @@ export class CollectionsController {
   constructor(private readonly service: CollectionsService) {}
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(@Req() req: any) {
+    return this.service.findAll(req.user);
   }
 
   @Get('tree')
-  tree() {
-    return this.service.tree();
+  tree(@Req() req: any) {
+    return this.service.tree(req.user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Req() req: any, @Param('id') id: string) {
+    return this.service.findOne(id, req.user);
   }
 
   @Post()
-  create(@Body() dto: CreateCollectionDto) {
-    return this.service.create(dto);
+  create(@Req() req: any, @Body() dto: CreateCollectionDto) {
+    return this.service.create(dto, req.user.sub);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCollectionDto) {
-    return this.service.update(id, dto);
+  update(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateCollectionDto) {
+    return this.service.update(id, dto, req.user);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  delete(@Req() req: any, @Param('id') id: string) {
+    return this.service.delete(id, req.user);
   }
 }

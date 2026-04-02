@@ -11,17 +11,21 @@ async function seedAdmin() {
 
   const username = process.env.ADMIN_USERNAME || 'admin';
   const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const existing = await prisma.user.findUnique({ where: { username } });
 
   if (!existing) {
-    const passwordHash = await bcrypt.hash(password, 10);
     await prisma.user.create({
       data: { username, passwordHash, role: 'SUPERADMIN' },
     });
     console.log(`Superadmin "${username}" created.`);
   } else {
-    console.log(`Superadmin "${username}" already exists.`);
+    await prisma.user.update({
+      where: { username },
+      data: { passwordHash, role: 'SUPERADMIN' },
+    });
+    console.log(`Superadmin "${username}" updated.`);
   }
 
   await pool.end();

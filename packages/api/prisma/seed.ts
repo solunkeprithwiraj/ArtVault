@@ -16,17 +16,22 @@ async function main() {
   const username = process.env.ADMIN_USERNAME || 'admin';
   const password = process.env.ADMIN_PASSWORD || 'admin123';
 
-  const existingUser = await prisma.user.findUnique({ where: { username } });
-  if (existingUser) {
-    console.log(`Superadmin "${username}" already exists, skipping.`);
+  const passwordHash = await bcrypt.hash(password, 10);
+  let adminUser = await prisma.user.findUnique({ where: { username } });
+  if (adminUser) {
+    adminUser = await prisma.user.update({
+      where: { username },
+      data: { passwordHash, role: 'SUPERADMIN' },
+    });
+    console.log(`Superadmin "${username}" updated.`);
   } else {
-    const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.create({
+    adminUser = await prisma.user.create({
       data: { username, passwordHash, role: 'SUPERADMIN' },
     });
     console.log(`Superadmin "${username}" created with password "${password}"`);
-    console.log('IMPORTANT: Change this password in production!');
   }
+
+  const userId = adminUser.id;
 
   await prisma.note.deleteMany();
   await prisma.artPiece.deleteMany();
@@ -34,17 +39,17 @@ async function main() {
   console.log('Cleared existing data');
 
   // --- Collections (nested) ---
-  const classics = await prisma.collection.create({ data: { name: 'Classic Art', description: 'Masterpieces from art history' } });
-  const classicsPaintings = await prisma.collection.create({ data: { name: 'Classic Paintings', description: 'Oil and canvas masterworks', parentId: classics.id } });
-  const classicsJapanese = await prisma.collection.create({ data: { name: 'Japanese Art', description: 'Woodblock prints and traditional art', parentId: classics.id } });
-  const modernArt = await prisma.collection.create({ data: { name: 'Modern Art', description: 'Contemporary and modern artworks' } });
-  const photography = await prisma.collection.create({ data: { name: 'Photography', description: 'Stunning photographs' } });
-  const musicVideos = await prisma.collection.create({ data: { name: 'Music & Videos', description: 'Lofi, ambient, and creative video content' } });
-  const inspiration = await prisma.collection.create({ data: { name: 'Inspiration Board', description: 'Visual inspiration' } });
+  const classics = await prisma.collection.create({ data: { userId, name: 'Classic Art', description: 'Masterpieces from art history' } });
+  const classicsPaintings = await prisma.collection.create({ data: { userId, name: 'Classic Paintings', description: 'Oil and canvas masterworks', parentId: classics.id } });
+  const classicsJapanese = await prisma.collection.create({ data: { userId, name: 'Japanese Art', description: 'Woodblock prints and traditional art', parentId: classics.id } });
+  const modernArt = await prisma.collection.create({ data: { userId, name: 'Modern Art', description: 'Contemporary and modern artworks' } });
+  const photography = await prisma.collection.create({ data: { userId, name: 'Photography', description: 'Stunning photographs' } });
+  const musicVideos = await prisma.collection.create({ data: { userId, name: 'Music & Videos', description: 'Lofi, ambient, and creative video content' } });
+  const inspiration = await prisma.collection.create({ data: { userId, name: 'Inspiration Board', description: 'Visual inspiration' } });
   console.log('Collections created');
 
   const starryNight = await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Starry Night Vibes',
       description: 'A dreamy night sky composition inspired by post-impressionism',
       mediaType: 'IMAGE',
@@ -56,7 +61,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Renaissance Portrait',
       description: 'A classical portrait study in the style of the old masters',
       mediaType: 'IMAGE',
@@ -68,7 +73,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Surreal Dreamscape',
       description: 'A surrealist landscape with melting forms and distorted reality',
       mediaType: 'IMAGE',
@@ -80,7 +85,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Dutch Golden Age Study',
       description: 'Rich colors and dramatic lighting in the style of Vermeer',
       mediaType: 'IMAGE',
@@ -92,7 +97,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Mythological Scene',
       description: 'A grand composition depicting gods and mortals',
       mediaType: 'IMAGE',
@@ -104,7 +109,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Ocean Wave',
       description: 'Powerful waves crashing — inspired by ukiyo-e woodblock prints',
       mediaType: 'IMAGE',
@@ -116,7 +121,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Mountain Serenity',
       description: 'A tranquil mountain landscape in the Japanese tradition',
       mediaType: 'IMAGE',
@@ -128,7 +133,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Abstract Geometry',
       description: 'Bold geometric shapes and primary colors',
       mediaType: 'IMAGE',
@@ -140,7 +145,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Pop Art Explosion',
       description: 'Bright, bold, commercial — the essence of pop art',
       mediaType: 'IMAGE',
@@ -152,7 +157,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Earth from Space',
       description: 'Our blue marble floating in the cosmic void',
       mediaType: 'IMAGE',
@@ -164,7 +169,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Nebula Colors',
       description: 'Vibrant gas clouds in deep space',
       mediaType: 'IMAGE',
@@ -176,7 +181,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Street Portrait',
       description: 'Raw emotion captured on the streets',
       mediaType: 'IMAGE',
@@ -188,7 +193,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Lofi Girl - beats to relax/study to',
       description: 'The iconic 24/7 lofi hip hop stream',
       mediaType: 'IFRAME',
@@ -200,7 +205,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Studio Ghibli Piano Collection',
       description: 'Beautiful piano arrangements from Studio Ghibli films',
       mediaType: 'IFRAME',
@@ -212,7 +217,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Satisfying Art Compilation',
       description: 'Mesmerizing abstract art and paint pouring',
       mediaType: 'IFRAME',
@@ -224,7 +229,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Minimalist Design',
       description: 'Clean lines and purposeful negative space',
       mediaType: 'IMAGE',
@@ -236,7 +241,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Nature Patterns',
       description: 'Mathematical beauty found in natural forms',
       mediaType: 'IMAGE',
@@ -248,7 +253,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Neon City Nights',
       description: 'Electric neon-lit streets in a futuristic cityscape',
       mediaType: 'IMAGE',
@@ -260,7 +265,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Water Garden',
       description: 'Peaceful lily pond with reflections of sky and trees',
       mediaType: 'IMAGE',
@@ -271,7 +276,7 @@ async function main() {
   });
 
   await prisma.artPiece.create({
-    data: {
+    data: { userId,
       title: 'Existential Scream',
       description: 'Raw emotional expression — anxiety and dread made visible',
       mediaType: 'IMAGE',
@@ -283,9 +288,9 @@ async function main() {
 
   await prisma.note.createMany({
     data: [
-      { artPieceId: starryNight.id, content: 'The swirling patterns create incredible visual movement' },
-      { artPieceId: starryNight.id, content: 'Reference this style for the portfolio header animation' },
-      { artPieceId: starryNight.id, content: 'Color palette: deep blues, bright yellows, warm whites' },
+      { artPieceId: starryNight.id, userId, content: 'The swirling patterns create incredible visual movement' },
+      { artPieceId: starryNight.id, userId, content: 'Reference this style for the portfolio header animation' },
+      { artPieceId: starryNight.id, userId, content: 'Color palette: deep blues, bright yellows, warm whites' },
     ],
   });
   console.log('Notes created');

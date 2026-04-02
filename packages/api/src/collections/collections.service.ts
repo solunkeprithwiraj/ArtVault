@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCollectionDto, UpdateCollectionDto } from './collections.dto';
+
+interface ReqUser {
+  sub: string;
+  role: string;
+}
 
 const PREVIEW_SELECT = {
   artPieces: {
@@ -15,8 +20,19 @@ const PREVIEW_SELECT = {
 export class CollectionsService {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  private ownerFilter(user: ReqUser) {
+    return user.role === 'SUPERADMIN' ? {} : { userId: user.sub };
+  }
+
+  private async assertOwner(id: string, user: ReqUser) {
+    if (user.role === 'SUPERADMIN') return;
+    const col = await this.prisma.collection.findUnique({ where: { id }, select: { userId: true } });
+    if (!col || col.userId !== user.sub) throw new ForbiddenException();
+  }
+
+  findAll(user: ReqUser) {
     return this.prisma.collection.findMany({
+      where: this.ownerFilter(user),
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { artPieces: true, children: true } },
@@ -26,7 +42,8 @@ export class CollectionsService {
     });
   }
 
-  findOne(id: string) {
+  async findOne(id: string, user: ReqUser) {
+    await this.assertOwner(id, user);
     return this.prisma.collection.findUniqueOrThrow({
       where: { id },
       include: {
@@ -43,9 +60,9 @@ export class CollectionsService {
     });
   }
 
-  tree() {
+  tree(user: ReqUser) {
     return this.prisma.collection.findMany({
-      where: { parentId: null },
+      where: { parentId: null, ...this.ownerFilter(user) },
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { artPieces: true } },
@@ -68,15 +85,17 @@ export class CollectionsService {
     });
   }
 
-  create(dto: CreateCollectionDto) {
-    return this.prisma.collection.create({ data: dto });
+  create(dto: CreateCollectionDto, userId: string) {
+    return this.prisma.collection.create({ data: { ...dto, userId } });
   }
 
-  update(id: string, dto: UpdateCollectionDto) {
+  async update(id: string, dto: UpdateCollectionDto, user: ReqUser) {
+    await this.assertOwner(id, user);
     return this.prisma.collection.update({ where: { id }, data: dto });
   }
 
-  delete(id: string) {
+  async delete(id: string, user: ReqUser) {
+    await this.assertOwner(id, user);
     return this.prisma.collection.delete({ where: { id } });
   }
 }

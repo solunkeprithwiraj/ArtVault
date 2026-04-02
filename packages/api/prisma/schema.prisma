@@ -19,12 +19,15 @@ enum MediaType {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
+  id           String       @id @default(cuid())
+  username     String       @unique
   passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         Role         @default(USER)
+  artPieces    ArtPiece[]
+  collections  Collection[]
+  notes        Note[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@map("users")
 }
@@ -42,6 +45,8 @@ model ArtPiece {
   isPinned     Boolean     @default(false)
   collection   Collection? @relation(fields: [collectionId], references: [id])
   collectionId String?
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
   notes        Note[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -51,16 +56,19 @@ model ArtPiece {
 
 model Collection {
   id          String       @id @default(cuid())
-  name        String       @unique
+  name        String
   description String?
   coverUrl    String?
   parentId    String?
   parent      Collection?  @relation("CollectionTree", fields: [parentId], references: [id])
   children    Collection[] @relation("CollectionTree")
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String
   artPieces   ArtPiece[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  @@unique([name, userId])
   @@map("collections")
 }
 
@@ -69,6 +77,8 @@ model Note {
   content    String
   artPiece   ArtPiece @relation(fields: [artPieceId], references: [id], onDelete: Cascade)
   artPieceId String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
