@@ -93,17 +93,45 @@ export class ScrapeController {
     }
 
     let html: string;
-    try {
-      const res = await fetch(body.url, {
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    ];
+
+    const fetchPage = async (ua: string): Promise<Response> => {
+      return fetch(body.url, {
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
+          'User-Agent': ua,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+          'Sec-Ch-Ua': '"Chromium";v="126", "Google Chrome";v="126", "Not-A.Brand";v="8"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+          Referer: new URL(body.url).origin + '/',
         },
         signal: AbortSignal.timeout(15000),
         redirect: 'follow',
       });
+    };
+
+    try {
+      // Try with first UA, retry with others on 403
+      let res = await fetchPage(userAgents[0]);
+      if (res.status === 403) {
+        for (let i = 1; i < userAgents.length; i++) {
+          res = await fetchPage(userAgents[i]);
+          if (res.status !== 403) break;
+        }
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       html = await res.text();
     } catch (err: any) {
