@@ -32,7 +32,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (res.status === 401) {
       clearToken();
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      if (typeof window !== 'undefined' && !['/login', '/signup'].includes(window.location.pathname)) {
         window.location.href = '/login';
       }
       throw new ApiError(401, 'Unauthorized');
@@ -47,6 +47,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   auth: {
+    signup: (username: string, password: string) =>
+      request<{ token: string }>('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      }),
     login: (username: string, password: string) =>
       request<{ token: string }>('/auth/login', {
         method: 'POST',

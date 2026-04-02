@@ -9,6 +9,7 @@ generator client {
 
 enum Role {
   SUPERADMIN
+  USER
 }
 
 enum MediaType {
@@ -21,7 +22,7 @@ model User {
   id           String   @id @default(cuid())
   username     String   @unique
   passwordHash String
-  role         Role     @default(SUPERADMIN)
+  role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

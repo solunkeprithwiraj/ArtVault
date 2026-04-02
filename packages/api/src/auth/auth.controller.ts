@@ -4,6 +4,8 @@ import {
   Get,
   Body,
   UnauthorizedException,
+  ConflictException,
+  BadRequestException,
   Req,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +19,33 @@ export class AuthController {
     private jwt: JwtService,
     private prisma: PrismaService,
   ) {}
+
+  @Public()
+  @Post('signup')
+  async signup(@Body() body: { username: string; password: string }) {
+    if (!body.username || body.username.length < 3) {
+      throw new BadRequestException('Username must be at least 3 characters');
+    }
+    if (!body.password || body.password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters');
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { username: body.username },
+    });
+    if (existing) {
+      throw new ConflictException('Username already taken');
+    }
+
+    const passwordHash = await bcrypt.hash(body.password, 10);
+    const user = await this.prisma.user.create({
+      data: { username: body.username, passwordHash, role: 'USER' },
+    });
+
+    return {
+      token: this.jwt.sign({ sub: user.id, username: user.username, role: user.role }),
+    };
+  }
 
   @Public()
   @Post('login')

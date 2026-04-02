@@ -63,6 +63,13 @@ export default function LoginPage() {
             {submitting ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-themed-secondary">
+          Don&apos;t have an account?{' '}
+          <a href="/signup" className="accent-text font-medium hover:underline">
+            Sign up
+          </a>
+        </p>
       </div>
     </div>
   );
