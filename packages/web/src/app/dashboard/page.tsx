@@ -24,11 +24,26 @@ const TYPE_ICONS: Record<string, string> = {
   IFRAME: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4',
 };
 
+interface BrokenLink {
+  id: string;
+  title: string;
+  sourceUrl: string;
+  mediaType: string;
+  status: number;
+  error?: string;
+}
+
 export default function DashboardPage() {
   const { toast } = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
   const [highlight, setHighlight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Broken links state
+  const [scanning, setScanning] = useState(false);
+  const [brokenLinks, setBrokenLinks] = useState<BrokenLink[]>([]);
+  const [scanDone, setScanDone] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -39,6 +54,57 @@ export default function DashboardPage() {
       .catch((err) => toast(err.message || 'Failed to load stats', 'error'))
       .finally(() => setLoading(false));
   }, [toast]);
+
+  const handleScan = async () => {
+    setScanning(true);
+    setScanDone(false);
+    setBrokenLinks([]);
+    try {
+      const result = await api.artPieces.checkLinks();
+      setBrokenLinks(result.details || []);
+      setScanDone(true);
+      if (result.broken === 0) {
+        toast('All links are healthy!', 'success');
+      } else {
+        toast(`Found ${result.broken} broken link${result.broken > 1 ? 's' : ''}`, 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Scan failed', 'error');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleDeleteBroken = async () => {
+    if (!brokenLinks.length) return;
+    if (!confirm(`Delete ${brokenLinks.length} piece${brokenLinks.length > 1 ? 's' : ''} with broken links?`)) return;
+    setDeleting(true);
+    try {
+      const ids = brokenLinks.map((b) => b.id);
+      await api.artPieces.batchDelete(ids);
+      toast(`${ids.length} broken piece${ids.length > 1 ? 's' : ''} deleted`, 'success');
+      setBrokenLinks([]);
+      // Refresh stats
+      const s = await api.artPieces.stats();
+      setStats(s);
+    } catch (err: any) {
+      toast(err.message || 'Delete failed', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteOne = async (id: string) => {
+    try {
+      await api.artPieces.delete(id);
+      setBrokenLinks((prev) => prev.filter((b) => b.id !== id));
+      toast('Piece deleted', 'success');
+      const s = await api.artPieces.stats();
+      setStats(s);
+    } catch (err: any) {
+      toast(err.message || 'Delete failed', 'error');
+    }
+  };
 
   if (loading) {
     return (
@@ -139,6 +205,77 @@ export default function DashboardPage() {
                     {c._count.artPieces}
                   </span>
                 </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Broken links checker */}
+        <div className="rounded-xl border border-themed bg-themed-card p-6 lg:col-span-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-themed">Broken Links</h2>
+            <div className="flex items-center gap-2">
+              {brokenLinks.length > 0 && (
+                <button
+                  onClick={handleDeleteBroken}
+                  disabled={deleting}
+                  className="rounded-lg bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : `Delete All ${brokenLinks.length} Broken`}
+                </button>
+              )}
+              <button
+                onClick={handleScan}
+                disabled={scanning}
+                className="rounded-lg accent-bg px-4 py-2 text-sm font-medium text-white accent-bg-hover disabled:opacity-50"
+              >
+                {scanning ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Scanning...
+                  </span>
+                ) : 'Scan Links'}
+              </button>
+            </div>
+          </div>
+
+          {!scanDone && !scanning && (
+            <p className="text-sm text-themed-muted">Click &ldquo;Scan Links&rdquo; to check all media URLs for broken links.</p>
+          )}
+
+          {scanDone && brokenLinks.length === 0 && (
+            <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-4 py-3 text-sm text-green-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              All links are healthy!
+            </div>
+          )}
+
+          {brokenLinks.length > 0 && (
+            <div className="space-y-2">
+              {brokenLinks.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
+                        {item.status || 'ERR'}
+                      </span>
+                      <span className="truncate text-sm font-medium text-themed">{item.title}</span>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-themed-muted">{item.sourceUrl}</p>
+                    {item.error && <p className="mt-0.5 text-xs text-red-400/70">{item.error}</p>}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteOne(item.id)}
+                    className="shrink-0 rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/20 active:bg-red-500/30"
+                    title="Delete this piece"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           )}
