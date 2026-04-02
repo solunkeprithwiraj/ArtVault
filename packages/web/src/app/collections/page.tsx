@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/toast';
 
@@ -170,7 +171,7 @@ export default function CollectionsPage() {
           className="group relative overflow-hidden rounded-2xl border border-themed bg-themed-card transition-all hover:border-[var(--border-hover)] hover:shadow-xl"
           style={{ marginLeft: depth * 32 }}
         >
-          <a href={`/?collectionId=${c.id}`} className="flex flex-col sm:flex-row">
+          <Link href={`/?collectionId=${c.id}`} className="flex flex-col sm:flex-row">
             {/* Cover image grid */}
             <div className="h-40 w-full shrink-0 overflow-hidden sm:h-auto sm:w-48">
               <CoverGrid images={previews} />
@@ -204,7 +205,7 @@ export default function CollectionsPage() {
                 )}
               </div>
             </div>
-          </a>
+          </Link>
 
           {/* Action buttons */}
           <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -307,7 +308,7 @@ export default function CollectionsPage() {
         <>
           {/* Hero collection */}
           {hero && hero._count?.artPieces > 0 && (
-            <a href={`/?collectionId=${hero.id}`}
+            <Link href={`/?collectionId=${hero.id}`}
               className="group mb-8 block overflow-hidden rounded-2xl border border-themed bg-themed-card transition-all hover:border-[var(--border-hover)] hover:shadow-2xl">
               <div className="relative h-56 overflow-hidden sm:h-72">
                 <CoverGrid images={hero.artPieces || []} />
@@ -323,7 +324,7 @@ export default function CollectionsPage() {
                   <p className="mt-2 text-sm text-white/50">{hero._count?.artPieces || 0} pieces</p>
                 </div>
               </div>
-            </a>
+            </Link>
           )}
 
           {/* Collection tree */}

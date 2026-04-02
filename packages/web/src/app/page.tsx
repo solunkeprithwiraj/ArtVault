@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useKeyboard } from '@/lib/use-keyboard';
 import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
@@ -41,6 +42,7 @@ function GalleryContent() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showSlideshow, setShowSlideshow] = useState(false);
+  const [fuzzy, setFuzzy] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -57,13 +59,16 @@ function GalleryContent() {
       const params: Record<string, string> = { page: String(p), limit: String(LIMIT) };
       if (activeTags.length) params.tags = activeTags.join(',');
       if (collectionId) params.collectionId = collectionId;
-      if (search.trim()) params.search = search.trim();
+      if (search.trim()) {
+        params.search = search.trim();
+        if (fuzzy) params.fuzzy = 'true';
+      }
       if (mediaType && mediaType !== 'ALL') params.mediaType = mediaType;
       if (showFavorites) params.favorite = 'true';
       if (sort) params.sort = sort;
       return params;
     },
-    [activeTags, collectionId, search, mediaType, showFavorites, sort],
+    [activeTags, collectionId, search, fuzzy, mediaType, showFavorites, sort],
   );
 
   const loadPieces = useCallback(async () => {
@@ -293,7 +298,7 @@ function GalleryContent() {
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {collectionName && (
-            <a href="/" className="text-sm accent-text hover:underline">&larr; Back to all</a>
+            <Link href="/" className="text-sm accent-text hover:underline">&larr; Back to all</Link>
           )}
           <button
             onClick={handleSurpriseMe}
@@ -301,9 +306,9 @@ function GalleryContent() {
           >
             Surprise me
           </button>
-          <a href="/discover" className="rounded-lg bg-themed-input px-3 py-1.5 text-sm text-themed-secondary hover:text-themed">
+          <Link href="/discover" className="rounded-lg bg-themed-input px-3 py-1.5 text-sm text-themed-secondary hover:text-themed">
             Discover
-          </a>
+          </Link>
           <span className="hidden text-xs text-themed-muted sm:inline-flex sm:items-center sm:ml-2">
             <kbd className="rounded border border-themed bg-themed-input px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>+<kbd className="rounded border border-themed bg-themed-input px-1 py-0.5 font-mono text-[10px]">K</kbd> command palette
           </span>
@@ -324,6 +329,18 @@ function GalleryContent() {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-themed-muted">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
           </svg>
+          <button
+            type="button"
+            onClick={() => setFuzzy((v) => !v)}
+            title={fuzzy ? 'Fuzzy search on' : 'Fuzzy search off'}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+              fuzzy
+                ? 'accent-bg text-white'
+                : 'bg-themed-input text-themed-muted hover:text-themed-secondary'
+            }`}
+          >
+            ~
+          </button>
         </div>
         <div className="flex shrink-0 gap-2">
           <button
@@ -381,9 +398,9 @@ function GalleryContent() {
             {search || activeTags.length || (mediaType && mediaType !== 'ALL') || showFavorites ? 'No results found' : 'No art pieces yet'}
           </p>
           {!search && !activeTags.length && (!mediaType || mediaType === 'ALL') && !showFavorites && (
-            <a href="/add" className="mt-4 inline-block rounded-lg accent-bg px-6 py-2.5 font-medium text-white accent-bg-hover">
+            <Link href="/add" className="mt-4 inline-block rounded-lg accent-bg px-6 py-2.5 font-medium text-white accent-bg-hover">
               Add your first piece
-            </a>
+            </Link>
           )}
         </div>
       ) : (

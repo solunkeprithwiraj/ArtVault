@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { MediaRenderer } from './media-renderer';
@@ -142,10 +143,10 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
                           )}
                           <ShareButton title={piece.title} text={piece.description} url={piece.sourceUrl} />
                           {piece.id && (
-                            <a href={`/edit/${piece.id}`}
+                            <Link href={`/edit/${piece.id}`}
                               className="rounded-lg bg-themed-input px-3 py-1.5 text-xs font-medium text-themed-secondary hover:text-themed">
                               Edit
-                            </a>
+                            </Link>
                           )}
                         </div>
                       </div>

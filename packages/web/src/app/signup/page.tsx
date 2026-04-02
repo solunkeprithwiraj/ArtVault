@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api, setToken } from '@/lib/api';
 import { useToast } from '@/components/toast';
 
@@ -91,9 +92,9 @@ export default function SignupPage() {
 
         <p className="mt-6 text-center text-sm text-themed-secondary">
           Already have an account?{' '}
-          <a href="/login" className="accent-text font-medium hover:underline">
+          <Link href="/login" className="accent-text font-medium hover:underline">
             Sign in
-          </a>
+          </Link>
         </p>
       </div>
     </div>

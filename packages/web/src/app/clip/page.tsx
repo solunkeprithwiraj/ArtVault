@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { detectMedia } from '@/lib/url-detect';
 import { useToast } from '@/components/toast';
@@ -94,7 +95,7 @@ function ClipContent() {
       {duplicate && (
         <div className="mb-6 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
           This URL is already in your vault: &ldquo;{duplicate.title}&rdquo;.{' '}
-          <a href={`/edit/${duplicate.id}`} className="underline">View it</a>
+          <Link href={`/edit/${duplicate.id}`} className="underline">View it</Link>
         </div>
       )}
 

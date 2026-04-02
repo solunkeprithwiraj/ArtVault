@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { detectMedia } from '@/lib/url-detect';
 import { useToast } from '@/components/toast';
@@ -198,7 +199,7 @@ export default function AddPage() {
   return (
     <>
       <div className="mb-8 flex items-center gap-4">
-        <a href="/" className="text-themed-secondary hover:text-themed">&larr;</a>
+        <Link href="/" className="text-themed-secondary hover:text-themed">&larr;</Link>
         <h1 className="text-3xl font-bold text-themed">Add Art Piece</h1>
       </div>
 
@@ -484,7 +485,7 @@ export default function AddPage() {
             {duplicate && (
               <div className="mt-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
                 Duplicate: &ldquo;{duplicate.title}&rdquo; already uses this URL.{' '}
-                <a href={`/edit/${duplicate.id}`} className="underline">View it</a>
+                <Link href={`/edit/${duplicate.id}`} className="underline">View it</Link>
               </div>
             )}
           </div>

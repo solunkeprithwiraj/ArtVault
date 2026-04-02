@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/toast';
 import { MediaRenderer } from '@/components/media-renderer';
@@ -80,7 +81,7 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
   return (
     <>
       <div className="mb-8 flex items-center gap-4">
-        <a href="/" className="text-themed-secondary hover:text-themed">&larr;</a>
+        <Link href="/" className="text-themed-secondary hover:text-themed">&larr;</Link>
         <h1 className="text-3xl font-bold text-themed">Edit Art Piece</h1>
       </div>
 
@@ -186,12 +187,12 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
             >
               {submitting ? 'Saving...' : 'Save Changes'}
             </button>
-            <a
+            <Link
               href="/"
               className="rounded-lg border border-themed bg-themed-input px-6 py-3 font-medium text-themed-secondary hover:text-themed"
             >
               Cancel
-            </a>
+            </Link>
           </div>
         </form>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/toast';
 import { useStats, useDailyHighlight, useBatchDelete, useInvalidate } from '@/lib/hooks';
@@ -140,7 +141,7 @@ export default function DashboardPage() {
                   <span key={tag} className="rounded-full accent-soft-bg px-2.5 py-0.5 text-xs accent-text">{tag}</span>
                 ))}
               </div>
-              <a href={`/edit/${highlight.id}`} className="mt-4 text-sm accent-text hover:underline">View &rarr;</a>
+              <Link href={`/edit/${highlight.id}`} className="mt-4 text-sm accent-text hover:underline">View &rarr;</Link>
             </div>
           </div>
         </div>
