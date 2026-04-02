@@ -531,16 +531,30 @@ export default function AddPage() {
             </select>
           </div>
 
+          {/* Mobile preview */}
+          {form.sourceUrl && (
+            <div className="overflow-hidden rounded-xl border border-themed bg-themed-card lg:hidden">
+              <p className="px-4 pt-3 text-xs font-medium text-themed-secondary">Preview</p>
+              <div className="p-3">
+                <MediaRenderer
+                  mediaType={form.mediaType}
+                  sourceUrl={form.sourceUrl}
+                  title={form.title || 'Preview'}
+                />
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg accent-bg py-3 font-semibold text-white accent-bg-hover disabled:opacity-50"
+            className="w-full rounded-lg accent-bg py-3.5 font-semibold text-white accent-bg-hover disabled:opacity-50"
           >
             {submitting ? 'Adding...' : 'Add to Vault'}
           </button>
         </form>
 
-        {/* Live preview */}
+        {/* Live preview — mobile: above form; desktop: sidebar */}
         <div className="hidden lg:block">
           <p className="mb-3 text-sm font-medium text-themed-secondary">Preview</p>
           <div className="overflow-hidden rounded-xl border border-themed bg-themed-card">

@@ -249,7 +249,7 @@ select option {
   color: var(--text-primary);
 }
 
-/* Mobile nav improvements */
+/* Mobile nav */
 @media (max-width: 639px) {
   .mobile-nav {
     position: fixed;
@@ -259,9 +259,26 @@ select option {
     z-index: 40;
     display: flex;
     justify-content: space-around;
-    padding: 0.75rem 0;
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
     background-color: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-nav-item {
+    position: relative;
+    min-width: 48px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Safe area padding for bottom nav */
+@media (max-width: 639px) {
+  main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

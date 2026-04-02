@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ThemeToggle } from './theme-provider';
 import { api, clearToken, getToken } from '@/lib/api';
@@ -14,6 +15,7 @@ const moreLinks = [
 ];
 
 export function Header() {
+  const pathname = usePathname();
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -132,36 +134,32 @@ export function Header() {
 
       {/* Mobile bottom nav */}
       <nav className="mobile-nav sm:hidden" aria-label="Mobile navigation">
-        <a href="/" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-          </svg>
-          Gallery
-        </a>
-        <a href="/collections" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
-          Collections
-        </a>
-        <a href="/add" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" />
-          </svg>
-          Add
-        </a>
-        <a href="/timeline" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-          </svg>
-          Timeline
-        </a>
-        <a href="/moodboard" className="flex flex-col items-center gap-1 text-xs text-themed-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" />
-          </svg>
-          Board
-        </a>
+        {[
+          { href: '/', label: 'Gallery', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> },
+          { href: '/collections', label: 'Collections', icon: <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /> },
+          { href: '/add', label: 'Add', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></> },
+          { href: '/timeline', label: 'Timeline', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></> },
+          { href: '/moodboard', label: 'Board', icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" /></> },
+        ].map(({ href, label, icon }) => {
+          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          return (
+            <a
+              key={href}
+              href={href}
+              className={`mobile-nav-item flex flex-col items-center gap-1 text-xs transition-colors ${
+                isActive ? 'accent-text font-semibold' : 'text-themed-secondary'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth={isActive ? 2.5 : 2}
+                strokeLinecap="round" strokeLinejoin="round">
+                {icon}
+              </svg>
+              {label}
+              {isActive && <span className="absolute -top-px left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />}
+            </a>
+          );
+        })}
       </nav>
     </>
   );
