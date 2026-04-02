@@ -29,7 +29,7 @@ function GalleryContent() {
   const [tags, setTags] = useState<Array<{ name: string; count: number }>>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [search, setSearch] = useState('');
-  const [mediaType, setMediaType] = useState('');
+  const [mediaType, setMediaType] = useState('ALL');
   const [sort, setSort] = useState('custom');
   const [showFavorites, setShowFavorites] = useState(false);
   const [layout, setLayout] = useState<'masonry' | 'grid' | 'list' | 'museum' | 'portfolio'>('masonry');
@@ -58,7 +58,7 @@ function GalleryContent() {
       if (activeTags.length) params.tags = activeTags.join(',');
       if (collectionId) params.collectionId = collectionId;
       if (search.trim()) params.search = search.trim();
-      if (mediaType) params.mediaType = mediaType;
+      if (mediaType && mediaType !== 'ALL') params.mediaType = mediaType;
       if (showFavorites) params.favorite = 'true';
       if (sort) params.sort = sort;
       return params;
@@ -370,9 +370,9 @@ function GalleryContent() {
       ) : pieces.length === 0 ? (
         <div className="py-20 text-center">
           <p className="text-xl text-themed-muted">
-            {search || activeTags.length || mediaType || showFavorites ? 'No results found' : 'No art pieces yet'}
+            {search || activeTags.length || (mediaType && mediaType !== 'ALL') || showFavorites ? 'No results found' : 'No art pieces yet'}
           </p>
-          {!search && !activeTags.length && !mediaType && !showFavorites && (
+          {!search && !activeTags.length && (!mediaType || mediaType === 'ALL') && !showFavorites && (
             <a href="/add" className="mt-4 inline-block rounded-lg accent-bg px-6 py-2.5 font-medium text-white accent-bg-hover">
               Add your first piece
             </a>

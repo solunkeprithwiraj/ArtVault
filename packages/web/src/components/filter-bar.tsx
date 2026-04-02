@@ -51,7 +51,7 @@ export function FilterBar({
           onValueChange={onMediaTypeChange}
           placeholder="All Types"
           options={[
-            { value: '', label: 'All Types' },
+            { value: 'ALL', label: 'All Types' },
             { value: 'IMAGE', label: 'Images' },
             { value: 'VIDEO', label: 'Videos' },
             { value: 'IFRAME', label: 'Embeds' },
