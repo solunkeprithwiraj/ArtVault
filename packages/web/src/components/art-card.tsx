@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { MediaRenderer } from './media-renderer';
 
 interface ArtCardProps {
@@ -46,8 +45,6 @@ export function ArtCard({
   onDrop,
 }: ArtCardProps) {
   const isListView = layout === 'list';
-  const [dominantColor, setDominantColor] = useState<string | null>(null);
-  const [showActions, setShowActions] = useState(false);
 
   const handleClick = () => {
     if (selectMode && onSelect) {
@@ -64,7 +61,6 @@ export function ArtCard({
       } ${isListView ? 'flex gap-4' : 'masonry-item'}`}
       style={{
         animationDelay: `${Math.min(index * 50, 500)}ms`,
-        ...(dominantColor && !isListView ? { boxShadow: `0 8px 24px ${dominantColor.replace('rgb', 'rgba').replace(')', ',0.15)')}` } : {}),
       }}
       draggable={draggable}
       onDragStart={(e) => onDragStart?.(e, piece.id)}
@@ -102,8 +98,6 @@ export function ArtCard({
           sourceUrl={piece.sourceUrl}
           title={piece.title}
           className={isListView ? 'h-full object-cover' : ''}
-          thumbnail
-          onColorExtract={piece.mediaType === 'IMAGE' ? setDominantColor : undefined}
         />
       </div>
 

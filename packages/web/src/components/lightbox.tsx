@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { MediaRenderer, extractDominantColor } from './media-renderer';
+import { MediaRenderer } from './media-renderer';
 import { ZoomableImage } from './zoomable-image';
 import { Notes } from './notes';
 import { useTouch } from '@/lib/use-touch';
@@ -44,23 +44,6 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
   }, [piece, handleKeyDown]);
 
   const { data: related = [] } = useRelated(piece?.id || '');
-  const [ambientColor, setAmbientColor] = useState<string | null>(null);
-
-  // Extract dominant color for ambient glow
-  useEffect(() => {
-    if (!piece || piece.mediaType !== 'IMAGE') {
-      setAmbientColor(null);
-      return;
-    }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const color = extractDominantColor(img);
-      setAmbientColor(color);
-    };
-    img.onerror = () => setAmbientColor(null);
-    img.src = piece.sourceUrl;
-  }, [piece?.sourceUrl, piece?.mediaType]);
 
   const touchHandlers = useTouch(
     useMemo(
@@ -81,14 +64,7 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
       <Dialog.Portal>
         <Dialog.Overlay
           className="fixed inset-0 z-50 backdrop-blur-sm transition-colors duration-500 data-[state=open]:animate-lightbox-bg"
-          style={{
-            backgroundColor: ambientColor
-              ? ambientColor.replace('rgb', 'rgba').replace(')', ',0.15)')
-              : 'rgba(0,0,0,0.85)',
-            backgroundImage: ambientColor
-              ? `radial-gradient(ellipse at center, ${ambientColor.replace('rgb', 'rgba').replace(')', ',0.2)')}, rgba(0,0,0,0.85) 70%)`
-              : undefined,
-          }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
         />
         <Dialog.Content
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -127,11 +103,7 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
 
               <div
                 className="flex max-h-[90vh] flex-col overflow-hidden rounded-xl bg-themed-card transition-shadow duration-500"
-                style={{
-                  boxShadow: ambientColor
-                    ? `0 0 60px 15px ${ambientColor.replace('rgb', 'rgba').replace(')', ',0.3)')}, 0 0 120px 40px ${ambientColor.replace('rgb', 'rgba').replace(')', ',0.15)')}`
-                    : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                }}
+                style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
               >
                 {/* Image — shrinks to fit, never clips */}
                 <div className="shrink-0">

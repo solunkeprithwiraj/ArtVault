@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { useState, useRef, useEffect } from 'react';
 
 interface MediaRendererProps {
   mediaType: 'IMAGE' | 'VIDEO' | 'IFRAME';
   sourceUrl: string;
   title: string;
   className?: string;
-  thumbnail?: boolean; // kept for API compat, no longer used for proxy
-  onColorExtract?: (color: string) => void;
 }
 
 function getYouTubeThumbnail(url: string): string | null {
@@ -17,72 +14,19 @@ function getYouTubeThumbnail(url: string): string | null {
   return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
 }
 
-export function extractDominantColor(img: HTMLImageElement): string | null {
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = 10;
-    canvas.height = 10;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, 10, 10);
-    const data = ctx.getImageData(0, 0, 10, 10).data;
-    let r = 0, g = 0, b = 0, count = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      r += data[i];
-      g += data[i + 1];
-      b += data[i + 2];
-      count++;
-    }
-    r = Math.round(r / count);
-    g = Math.round(g / count);
-    b = Math.round(b / count);
-    return `rgb(${r},${g},${b})`;
-  } catch {
-    return null;
-  }
-}
-
-function ProxiedImage({
-  sourceUrl,
-  title,
-  className,
-  onColorExtract,
-}: Omit<MediaRendererProps, 'mediaType'>) {
-  const [src, setSrc] = useState(sourceUrl);
-  const [failed, setFailed] = useState(false);
-
-  const handleError = () => {
-    if (!failed) {
-      setFailed(true);
-      // Original blocked (CORS/hotlink) — try proxy as fallback
-      setSrc(api.proxyUrl(sourceUrl));
-    }
-  };
-
-  const handleLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      if (!onColorExtract) return;
-      const color = extractDominantColor(e.currentTarget);
-      if (color) onColorExtract(color);
-    },
-    [onColorExtract],
-  );
-
+function SimpleImage({ sourceUrl, title, className }: MediaRendererProps) {
   return (
     <img
-      src={src}
+      src={sourceUrl}
       alt={title}
       className={`w-full rounded-lg object-cover ${className}`}
       loading="lazy"
       decoding="async"
-      crossOrigin={onColorExtract ? 'anonymous' : undefined}
-      onError={handleError}
-      onLoad={handleLoad}
     />
   );
 }
 
-function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'mediaType'>) {
+function LazyIframe({ sourceUrl, title, className }: MediaRendererProps) {
   const [loaded, setLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -139,17 +83,10 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
   );
 }
 
-export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onColorExtract }: MediaRendererProps) {
+export function MediaRenderer({ mediaType, sourceUrl, title, className = '' }: MediaRendererProps) {
   switch (mediaType) {
     case 'IMAGE':
-      return (
-        <ProxiedImage
-          sourceUrl={sourceUrl}
-          title={title}
-          className={className}
-          onColorExtract={onColorExtract}
-        />
-      );
+      return <SimpleImage mediaType={mediaType} sourceUrl={sourceUrl} title={title} className={className} />;
     case 'VIDEO':
       return (
         <video src={sourceUrl} className={`w-full rounded-lg ${className}`} preload="metadata" controls>
@@ -157,6 +94,6 @@ export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onC
         </video>
       );
     case 'IFRAME':
-      return <LazyIframe sourceUrl={sourceUrl} title={title} className={className} />;
+      return <LazyIframe mediaType={mediaType} sourceUrl={sourceUrl} title={title} className={className} />;
   }
 }
