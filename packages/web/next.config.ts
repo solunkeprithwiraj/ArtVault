@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
+  poweredByHeader: false,
 };
 
 export default nextConfig;
