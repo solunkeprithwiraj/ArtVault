@@ -8,7 +8,7 @@ interface MediaRendererProps {
   sourceUrl: string;
   title: string;
   className?: string;
-  thumbnail?: boolean;
+  thumbnail?: boolean; // kept for API compat, no longer used for proxy
   onColorExtract?: (color: string) => void;
 }
 
@@ -46,19 +46,16 @@ function ProxiedImage({
   sourceUrl,
   title,
   className,
-  thumbnail,
   onColorExtract,
 }: Omit<MediaRendererProps, 'mediaType'>) {
-  // Always start with original URL — most reliable
-  // Use proxy in srcSet as optimization hint (browser picks best)
   const [src, setSrc] = useState(sourceUrl);
   const [failed, setFailed] = useState(false);
 
   const handleError = () => {
     if (!failed) {
       setFailed(true);
-      // Original failed — try via proxy
-      setSrc(api.proxyUrl(sourceUrl, thumbnail ? { w: 600, q: 75, format: 'webp' } : undefined));
+      // Original blocked (CORS/hotlink) — try proxy as fallback
+      setSrc(api.proxyUrl(sourceUrl));
     }
   };
 
@@ -71,21 +68,9 @@ function ProxiedImage({
     [onColorExtract],
   );
 
-  // Responsive srcSet via proxy — browser will use these if proxy is reachable
-  // Falls back to src (original URL) if proxy fails
-  const srcSet = thumbnail && !failed
-    ? `${api.proxyUrl(sourceUrl, { w: 400, q: 70, format: 'webp' })} 400w, ${api.proxyUrl(sourceUrl, { w: 600, q: 75, format: 'webp' })} 600w, ${api.proxyUrl(sourceUrl, { w: 900, q: 80, format: 'webp' })} 900w`
-    : undefined;
-
-  const sizes = thumbnail && !failed
-    ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
-    : undefined;
-
   return (
     <img
       src={src}
-      srcSet={srcSet}
-      sizes={sizes}
       alt={title}
       className={`w-full rounded-lg object-cover ${className}`}
       loading="lazy"
@@ -154,7 +139,7 @@ function LazyIframe({ sourceUrl, title, className }: Omit<MediaRendererProps, 'm
   );
 }
 
-export function MediaRenderer({ mediaType, sourceUrl, title, className = '', thumbnail, onColorExtract }: MediaRendererProps) {
+export function MediaRenderer({ mediaType, sourceUrl, title, className = '', onColorExtract }: MediaRendererProps) {
   switch (mediaType) {
     case 'IMAGE':
       return (
@@ -162,7 +147,6 @@ export function MediaRenderer({ mediaType, sourceUrl, title, className = '', thu
           sourceUrl={sourceUrl}
           title={title}
           className={className}
-          thumbnail={thumbnail}
           onColorExtract={onColorExtract}
         />
       );
