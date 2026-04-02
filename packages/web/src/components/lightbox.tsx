@@ -190,7 +190,12 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
                         ))}
                       </div>
 
-                      {piece.id && <Notes artPieceId={piece.id} />}
+                      {/* Notes — hidden on mobile for cleaner view */}
+                      {piece.id && (
+                        <div className="hidden sm:block">
+                          <Notes artPieceId={piece.id} />
+                        </div>
+                      )}
 
                       {related.length > 0 && (
                         <div className="mt-4 border-t border-themed pt-4">
@@ -210,17 +215,23 @@ export function Lightbox({ piece, onClose, onPrev, onNext, onToggleFavorite, has
                         </div>
                       )}
 
+                      {/* Swipe hint on mobile, prev/next buttons on tablet */}
                       {(onPrev || onNext) && (
-                        <div className="mt-4 flex justify-between lg:hidden">
-                          <button onClick={onPrev} disabled={!hasPrev}
-                            className="rounded-lg bg-themed-input px-4 py-2 text-sm text-themed-secondary disabled:opacity-30">
-                            &larr; Prev
-                          </button>
-                          <button onClick={onNext} disabled={!hasNext}
-                            className="rounded-lg bg-themed-input px-4 py-2 text-sm text-themed-secondary disabled:opacity-30">
-                            Next &rarr;
-                          </button>
-                        </div>
+                        <>
+                          <p className="mt-3 text-center text-[11px] text-themed-muted sm:hidden">
+                            Swipe left/right to navigate, down to close
+                          </p>
+                          <div className="mt-4 hidden justify-between sm:flex lg:hidden">
+                            <button onClick={onPrev} disabled={!hasPrev}
+                              className="rounded-lg bg-themed-input px-4 py-2 text-sm text-themed-secondary disabled:opacity-30">
+                              &larr; Prev
+                            </button>
+                            <button onClick={onNext} disabled={!hasNext}
+                              className="rounded-lg bg-themed-input px-4 py-2 text-sm text-themed-secondary disabled:opacity-30">
+                              Next &rarr;
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
                   </ScrollArea.Viewport>
