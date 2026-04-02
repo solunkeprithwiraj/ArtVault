@@ -66,7 +66,7 @@ export const api = {
       request<void>(`/art-pieces/${id}`, { method: 'DELETE' }),
     toggleFavorite: (id: string) =>
       request<any>(`/art-pieces/${id}/favorite`, { method: 'PATCH' }),
-    tags: () => request<string[]>('/art-pieces/tags'),
+    tags: () => request<Array<{ name: string; count: number }>>('/art-pieces/tags'),
     reorder: (ids: string[]) =>
       request<any>('/art-pieces/reorder', { method: 'POST', body: JSON.stringify({ ids }) }),
     stats: () => request<any>('/art-pieces/stats'),
