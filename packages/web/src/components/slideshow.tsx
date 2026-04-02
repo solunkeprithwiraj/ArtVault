@@ -111,6 +111,7 @@ export function Slideshow({ pieces, onClose }: SlideshowProps) {
 
         <div className="max-h-[80vh] max-w-[85vw]">
           <MediaRenderer
+            key={piece.id}
             mediaType={piece.mediaType}
             sourceUrl={piece.sourceUrl}
             title={piece.title}
