@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, setToken } from '@/lib/api';
 import { useToast } from '@/components/toast';
+import { PasswordInput } from '@/components/password-input';
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +26,7 @@ export default function SignupPage() {
 
     setSubmitting(true);
     try {
-      const { token } = await api.auth.signup(username, password);
+      const { token } = await api.auth.signup(username, password, email || undefined);
       setToken(token);
       router.push('/');
     } catch (err: any) {
@@ -32,6 +34,9 @@ export default function SignupPage() {
       setSubmitting(false);
     }
   };
+
+  const inputClass =
+    'w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]';
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -44,43 +49,41 @@ export default function SignupPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              required
-              minLength={3}
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              autoFocus
-              autoComplete="username"
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Password (min 6 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              autoComplete="new-password"
-            />
-          </div>
+          <input
+            type="text"
+            required
+            minLength={3}
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className={inputClass}
+            autoFocus
+            autoComplete="username"
+          />
+          <input
+            type="email"
+            placeholder="Email (optional)"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+            autoComplete="email"
+          />
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            placeholder="Password (min 6 characters)"
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
+          <PasswordInput
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Confirm password"
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
           <button
             type="submit"
             disabled={submitting}

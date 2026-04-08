@@ -47,10 +47,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   auth: {
-    signup: (username: string, password: string) =>
+    signup: (username: string, password: string, email?: string) =>
       request<{ token: string }>('/auth/signup', {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, email: email || undefined }),
       }),
     login: (username: string, password: string) =>
       request<{ token: string }>('/auth/login', {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, setToken } from '@/lib/api';
 import { useToast } from '@/components/toast';
+import { PasswordInput } from '@/components/password-input';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,20 +41,17 @@ export default function LoginPage() {
           <input
             type="text"
             required
-            placeholder="Username"
+            placeholder="Username or email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             autoFocus
             autoComplete="username"
           />
-          <input
-            type="password"
-            required
-            placeholder="Password"
+          <PasswordInput
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-themed bg-themed-input px-4 py-3 text-themed placeholder:text-themed-muted focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            onChange={setPassword}
+            required
             autoComplete="current-password"
           />
           <button

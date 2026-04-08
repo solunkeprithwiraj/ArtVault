@@ -126,6 +126,19 @@ export function detectMedia(input: string): DetectedMedia | null {
 
   const trimmed = input.trim();
 
+  // 0. Check for base64 data URLs
+  if (trimmed.startsWith('data:')) {
+    const dataMatch = trimmed.match(/^data:(image|video)\//);
+    if (dataMatch) {
+      return {
+        mediaType: dataMatch[1] === 'video' ? 'VIDEO' : 'IMAGE',
+        sourceUrl: trimmed,
+        title: `Base64 ${dataMatch[1]}`,
+      };
+    }
+    return null;
+  }
+
   // 1. Check if input is pasted iframe HTML
   if (trimmed.startsWith('<iframe') || trimmed.startsWith('<IFRAME')) {
     const src = extractIframeSrc(trimmed);

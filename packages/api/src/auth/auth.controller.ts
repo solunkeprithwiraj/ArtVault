@@ -22,24 +22,36 @@ export class AuthController {
 
   @Public()
   @Post('signup')
-  async signup(@Body() body: { username: string; password: string }) {
+  async signup(@Body() body: { username: string; email?: string; password: string }) {
     if (!body.username || body.username.length < 3) {
       throw new BadRequestException('Username must be at least 3 characters');
     }
     if (!body.password || body.password.length < 6) {
       throw new BadRequestException('Password must be at least 6 characters');
     }
+    if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+      throw new BadRequestException('Invalid email address');
+    }
 
-    const existing = await this.prisma.user.findUnique({
+    const existingUsername = await this.prisma.user.findUnique({
       where: { username: body.username },
     });
-    if (existing) {
+    if (existingUsername) {
       throw new ConflictException('Username already taken');
+    }
+
+    if (body.email) {
+      const existingEmail = await this.prisma.user.findUnique({
+        where: { email: body.email },
+      });
+      if (existingEmail) {
+        throw new ConflictException('Email already registered');
+      }
     }
 
     const passwordHash = await bcrypt.hash(body.password, 10);
     const user = await this.prisma.user.create({
-      data: { username: body.username, passwordHash, role: 'USER' },
+      data: { username: body.username, email: body.email || null, passwordHash, role: 'USER' },
     });
 
     return {
@@ -50,8 +62,14 @@ export class AuthController {
   @Public()
   @Post('login')
   async login(@Body() body: { username: string; password: string }) {
-    const user = await this.prisma.user.findUnique({
-      where: { username: body.username },
+    // Allow login with username or email
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: body.username },
+          { email: body.username },
+        ],
+      },
     });
 
     if (!user) throw new UnauthorizedException('Invalid credentials');
@@ -73,7 +91,7 @@ export class AuthController {
   async me(@Req() req: any) {
     const user = await this.prisma.user.findUnique({
       where: { id: req.user.sub },
-      select: { id: true, username: true, role: true, createdAt: true },
+      select: { id: true, username: true, email: true, role: true, createdAt: true },
     });
     if (!user) throw new UnauthorizedException();
     return user;
