@@ -80,8 +80,67 @@ const SKIP_PATTERNS = [
   /transparent\./i,
 ];
 
+// ─── oEmbed providers ──────────────────────────────────────────────────────
+const OEMBED_PROVIDERS: Array<{ pattern: RegExp; endpoint: string }> = [
+  { pattern: /youtube\.com\/watch|youtu\.be\//i, endpoint: 'https://www.youtube.com/oembed' },
+  { pattern: /vimeo\.com\/\d+/i, endpoint: 'https://vimeo.com/api/oembed.json' },
+  { pattern: /twitter\.com|x\.com/i, endpoint: 'https://publish.twitter.com/oembed' },
+  { pattern: /instagram\.com\/(p|reel|tv)\//i, endpoint: 'https://api.instagram.com/oembed' },
+  { pattern: /tiktok\.com/i, endpoint: 'https://www.tiktok.com/oembed' },
+  { pattern: /spotify\.com/i, endpoint: 'https://open.spotify.com/oembed' },
+  { pattern: /soundcloud\.com/i, endpoint: 'https://soundcloud.com/oembed' },
+  { pattern: /dailymotion\.com/i, endpoint: 'https://www.dailymotion.com/services/oembed' },
+  { pattern: /reddit\.com/i, endpoint: 'https://www.reddit.com/oembed' },
+  { pattern: /flickr\.com/i, endpoint: 'https://www.flickr.com/services/oembed' },
+];
+
 @Controller('scrape')
 export class ScrapeController {
+  // ─── oEmbed resolver ─────────────────────────────────────────────
+  private async tryOembed(url: string): Promise<ScrapedMedia[] | null> {
+    const provider = OEMBED_PROVIDERS.find((p) => p.pattern.test(url));
+    if (!provider) return null;
+
+    try {
+      const oembedUrl = `${provider.endpoint}?url=${encodeURIComponent(url)}&format=json`;
+      const res = await fetch(oembedUrl, {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'ArtVault/1.0' },
+      });
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const media: ScrapedMedia[] = [];
+
+      // Extract embed iframe
+      if (data.html) {
+        const srcMatch = data.html.match(/src=["']([^"']+)["']/);
+        if (srcMatch) {
+          media.push({
+            type: 'IFRAME',
+            url: srcMatch[1],
+            thumbnail: data.thumbnail_url || undefined,
+            title: data.title || undefined,
+          });
+        }
+      }
+
+      // Extract thumbnail as image
+      if (data.thumbnail_url) {
+        media.push({
+          type: 'IMAGE',
+          url: data.thumbnail_url,
+          thumbnail: data.thumbnail_url,
+          title: data.title ? `${data.title} (thumbnail)` : 'Thumbnail',
+        });
+      }
+
+      return media.length > 0 ? media : null;
+    } catch {
+      return null;
+    }
+  }
+
   @Post()
   async scrape(@Body() body: { url: string }): Promise<ScrapeResult> {
     if (!body.url) throw new BadRequestException('url is required');
@@ -92,14 +151,22 @@ export class ScrapeController {
       throw new BadRequestException('Invalid URL');
     }
 
+    // ─── Try oEmbed first (fast, no scraping needed) ────────────────
+    const oembedMedia = await this.tryOembed(body.url);
+
     let html: string;
+    let fetchError: string | null = null;
     const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+      'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
+      // Googlebot (some sites allow this)
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
     ];
 
-    const fetchPage = async (ua: string): Promise<Response> => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    const fetchPage = async (ua: string, referer?: string): Promise<Response> => {
       return fetch(body.url, {
         headers: {
           'User-Agent': ua,
@@ -108,34 +175,87 @@ export class ScrapeController {
           'Accept-Encoding': 'gzip, deflate, br',
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
-          'Sec-Ch-Ua': '"Chromium";v="126", "Google Chrome";v="126", "Not-A.Brand";v="8"',
+          'Sec-Ch-Ua': '"Chromium";v="131", "Google Chrome";v="131", "Not-A.Brand";v="24"',
           'Sec-Ch-Ua-Mobile': '?0',
           'Sec-Ch-Ua-Platform': '"Windows"',
           'Sec-Fetch-Dest': 'document',
           'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-Site': referer ? 'cross-site' : 'none',
           'Sec-Fetch-User': '?1',
           'Upgrade-Insecure-Requests': '1',
-          Referer: new URL(body.url).origin + '/',
+          ...(referer ? { Referer: referer } : {}),
+          DNT: '1',
         },
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(20000),
         redirect: 'follow',
       });
     };
 
     try {
-      // Try with first UA, retry with others on 403
-      let res = await fetchPage(userAgents[0]);
-      if (res.status === 403) {
-        for (let i = 1; i < userAgents.length; i++) {
-          res = await fetchPage(userAgents[i]);
-          if (res.status !== 403) break;
+      let res: Response | null = null;
+      const origin = new URL(body.url).origin;
+
+      // Strategy 1: Direct fetch with multiple UAs
+      for (const ua of userAgents) {
+        res = await fetchPage(ua, origin + '/');
+        if (res.ok) break;
+
+        // Retry on rate limit (429, 529) with backoff
+        if (res.status === 429 || res.status === 529) {
+          const retryAfter = parseInt(res.headers.get('retry-after') || '2');
+          await sleep(Math.min(retryAfter * 1000, 5000));
+          res = await fetchPage(ua, origin + '/');
+          if (res.ok) break;
+        }
+
+        // Try next UA on 403
+        if (res.status === 403) continue;
+
+        // Other errors — don't retry
+        break;
+      }
+
+      // Strategy 2: Try fetching via Google AMP cache (public pages)
+      if (res && !res.ok) {
+        try {
+          const ampUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(body.url)}`;
+          const ampRes = await fetch(ampUrl, {
+            headers: { 'User-Agent': userAgents[0] },
+            signal: AbortSignal.timeout(10000),
+            redirect: 'follow',
+          });
+          if (ampRes.ok) res = ampRes;
+        } catch {
+          // Google cache failed too, ignore
         }
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      html = await res.text();
+
+      if (!res || !res.ok) {
+        fetchError = `HTTP ${res?.status || 'unknown'}`;
+        html = '';
+      } else {
+        html = await res.text();
+      }
     } catch (err: any) {
-      throw new BadRequestException(`Failed to fetch page: ${err.message}`);
+      fetchError = err.message;
+      html = '';
+    }
+
+    // If scraping failed but oEmbed worked, return oEmbed results
+    if (fetchError && oembedMedia) {
+      return {
+        pageTitle: oembedMedia[0]?.title || '',
+        pageDescription: '',
+        favicon: null,
+        media: oembedMedia,
+      };
+    }
+
+    // If both failed
+    if (fetchError && !oembedMedia) {
+      throw new BadRequestException(
+        `Failed to fetch page (${fetchError}). Try: 1) Paste the embed/iframe code directly, 2) Use the share URL from the site, 3) Copy the image URL directly.`,
+      );
     }
 
     const found = new Map<string, ScrapedMedia>();
@@ -471,11 +591,24 @@ export class ScrapeController {
       html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i);
     const favicon = faviconMatch ? this.resolveUrl(faviconMatch[1], body.url) : null;
 
+    // Merge oEmbed results (prepend — they're usually the most relevant)
+    const allMedia = [
+      ...(oembedMedia || []),
+      ...Array.from(found.values()),
+    ];
+
+    // Deduplicate by normalized URL
+    const deduped = new Map<string, ScrapedMedia>();
+    for (const m of allMedia) {
+      const key = this.normalizeUrl(m.url);
+      if (!deduped.has(key)) deduped.set(key, m);
+    }
+
     return {
       pageTitle,
       pageDescription,
       favicon,
-      media: Array.from(found.values()),
+      media: Array.from(deduped.values()),
     };
   }
 
