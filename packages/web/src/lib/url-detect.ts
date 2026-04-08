@@ -126,7 +126,7 @@ export function detectMedia(input: string): DetectedMedia | null {
 
   const trimmed = input.trim();
 
-  // 0. Check for base64 data URLs
+  // 0a. Check for base64 data URLs
   if (trimmed.startsWith('data:')) {
     const dataMatch = trimmed.match(/^data:(image|video)\//);
     if (dataMatch) {
@@ -137,6 +137,13 @@ export function detectMedia(input: string): DetectedMedia | null {
       };
     }
     return null;
+  }
+
+  // 0b. Check for blob URLs
+  if (trimmed.startsWith('blob:')) {
+    // Blob URLs work in the browser for both images and videos
+    // Default to IMAGE since we can't inspect the blob content-type here
+    return { mediaType: 'IMAGE', sourceUrl: trimmed, title: 'Blob content' };
   }
 
   // 1. Check if input is pasted iframe HTML
