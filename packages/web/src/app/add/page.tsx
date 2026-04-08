@@ -475,7 +475,7 @@ export default function AddPage() {
               className={inputClass}
               value={form.sourceUrl}
               onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder="Paste any URL — YouTube, Vimeo, image, video..."
+              placeholder="Paste URL or <iframe> embed code..."
             />
             {autoDetected && (
               <p className="mt-1.5 text-xs accent-text">
